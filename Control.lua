@@ -6,31 +6,34 @@ local branch = "main"
 
 local syncFile = "current_bot_config.txt"
 
--- [[ AUTO-FOLDER CREATION (Optional for Main Script) ]] --
-if not isfolder("WinterHub") then makefolder("WinterHub") end
-if not isfolder("WinterHub/license") then makefolder("WinterHub/license") end
-
 -- [[ FUNCTION TO RUN SELECTED CONFIG ]] --
 local function RunConfig(configName)
     local rawURL = "https://raw.githubusercontent.com/"..user.."/"..repo.."/"..branch.."/"..path.."/"..configName
     
+    -- Ambil isi file Raw
     local s, r = pcall(function() return game:HttpGet(rawURL) end)
-    if s then 
-        -- Menjalankan config yang sudah berisi Settings + Key + Loadstring FishIt
-        loadstring(r)()
+    
+    if s and r then 
+        -- MEMBERSIHKAN STRING (PENTING!)
+        -- Menghapus karakter aneh di awal file yang sering merusak script_key
+        local cleanCode = r:gsub("^\239\187\191", "") 
+        
+        -- Beri jeda 0.5 detik agar Global Environment siap
+        task.wait(0.5)
+        
+        local func, err = loadstring(cleanCode)
+        if func then 
+            func() 
+        else
+            warn("Error Loading Script: " .. tostring(err))
+        end
     else
-        warn("Gagal mengambil config: " .. configName)
+        warn("Gagal mengambil Raw URL: " .. rawURL)
     end
 end
 
--- [[ MAIN LOGIC FLOW ]] --
-
--- 1. Cek apakah ada config yang sudah di-sync (Auto-Run)
-if isfile(syncFile) then
-    local lastConfig = readfile(syncFile)
-    RunConfig(lastConfig)
-else
-    -- 2. Jika tidak ada sync, tampilkan Menu Pilih Config
+-- [[ MENU PEMILIH CONFIG ]] --
+local function ShowMenu()
     local apiURL = "https://api.github.com/repos/"..user.."/"..repo.."/contents/"..path
     local s_api, r_api = pcall(function() return game:HttpGet(apiURL) end)
     
@@ -41,21 +44,12 @@ else
             if file.name:match("%.lua$") then table.insert(validFiles, file) end 
         end
 
-        -- GUI PILIH CONFIG
         local sg = Instance.new("ScreenGui", game.CoreGui)
         local f = Instance.new("Frame", sg)
-        -- Tinggi frame otomatis menyesuaikan jumlah file .lua di folder Configs
         f.Size = UDim2.new(0, 250, 0, 70 + (#validFiles * 45))
         f.Position = UDim2.new(0.5, -125, 0.5, -((70 + (#validFiles * 45))/2))
-        f.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        f.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
         Instance.new("UICorner", f)
-
-        local l = Instance.new("TextLabel", f)
-        l.Size = UDim2.new(1, 0, 0, 45)
-        l.Text = "SELECT PAWITUN CONFIG"
-        l.TextColor3 = Color3.new(1, 1, 1)
-        l.Font = Enum.Font.GothamBold
-        l.BackgroundTransparency = 1
 
         local yPos = 55
         for _, file in pairs(validFiles) do
@@ -63,19 +57,23 @@ else
             btn.Size = UDim2.new(0, 210, 0, 38)
             btn.Position = UDim2.new(0.5, -105, 0, yPos)
             btn.Text = file.name:gsub("%.lua$", "")
-            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
             btn.TextColor3 = Color3.new(1,1,1)
-            btn.Font = Enum.Font.GothamSemibold
             Instance.new("UICorner", btn)
 
             btn.MouseButton1Click:Connect(function()
-                writefile(syncFile, file.name) -- Simpan pilihan agar auto-run kedepannya
+                writefile(syncFile, file.name)
                 sg:Destroy()
                 RunConfig(file.name)
             end)
             yPos = yPos + 45
         end
-    else
-        warn("Gagal terhubung ke GitHub API. Pastikan folder 'Configs' ada.")
     end
+end
+
+-- [[ LOGIC ]] --
+if isfile(syncFile) then
+    RunConfig(readfile(syncFile))
+else
+    ShowMenu()
 end
