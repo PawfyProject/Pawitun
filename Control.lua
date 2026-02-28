@@ -1,7 +1,7 @@
 -- [[ SETTINGS REPO PAWITUN ]] --
-local user = "dandansalsal" -- Berdasarkan gambar profil GitHub kamu
-local repo = "Pawitun"      -- Nama repository kamu
-local path = "Configs"     -- Nama folder dengan 's' sesuai gambar
+local user = "PawfyProject" -- Sesuai link URL raw yang kamu buka
+local repo = "Pawitun"      -- Nama repository
+local path = "Configs"     -- Nama folder dengan 's'
 local branch = "main"
 
 local syncFile = "current_bot_config.txt"
@@ -70,7 +70,6 @@ if not isfile(keyFile) then
     txt.Size = UDim2.new(0, 210, 0, 35)
     txt.Position = UDim2.new(0.5, -105, 0, 55)
     txt.PlaceholderText = "Paste Key Here..."
-    txt.Text = ""
     txt.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     txt.TextColor3 = Color3.new(1,1,1)
     Instance.new("UICorner", txt)
@@ -88,7 +87,7 @@ if not isfile(keyFile) then
         if txt.Text ~= "" then
             writefile(keyFile, txt.Text) 
             sg:Destroy()
-            game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Success", Text = "Key Saved! Please Restart Script."})
+            game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Success", Text = "Key Saved! Restart Script."})
         end
     end)
     return 
@@ -100,21 +99,17 @@ local currentKey = readfile(keyFile)
 if isfile(syncFile) then
     ExecuteFinal(readfile(syncFile), currentKey)
 else
-    -- Ambil Daftar File dari GitHub API secara Otomatis
     local apiURL = "https://api.github.com/repos/"..user.."/"..repo.."/contents/"..path
     local s_api, r_api = pcall(function() return game:HttpGet(apiURL) end)
     
-    if not s_api then warn("GitHub API Error! Coba lagi nanti.") return end
+    if not s_api then warn("GitHub API Error!") return end
     
     local files = game:GetService("HttpService"):JSONDecode(r_api)
     local validFiles = {}
     for _, file in pairs(files) do 
-        if file.name:match("%.lua$") then 
-            table.insert(validFiles, file) 
-        end 
+        if file.name:match("%.lua$") then table.insert(validFiles, file) end 
     end
 
-    -- GUI PILIH CONFIG
     local sg, f = createBaseGUI("SELECT CONFIG", 70 + (#validFiles * 45))
     local yPos = 55
     for _, file in pairs(validFiles) do
