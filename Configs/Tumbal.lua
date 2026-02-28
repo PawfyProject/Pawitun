@@ -1,79 +1,182 @@
--- [[ SETTINGS REPO PAWITUN ]] --
-local user = "PawfyProject"
-local repo = "Pawitun"
-local path = "Configs"
-local branch = "main"
+_G.FishItConfig = _G.FishItConfig or {
+    ["Fishing"] = {
+        ["Auto Perfect"] = false,
+        ["Random Result"] = false,
 
-local syncFile = "current_bot_config.txt"
+        ["Auto Favorite"] = true,
+        ["Auto Unfavorite"] = false,
+        ["Fish Name"] = {
+	       "Sacred Guardian Squid",
+               {Name = "Ruby", Variant = "Gemstone"}, 
+            -- {Variant = "Leviathan's Rage"}, -- Variant Only
+            -- {Tier = "Secret", Variant = "Leviathan's Rage"},  -- Tier + Variant
+        },
 
--- [[ FUNCTION TO RUN SELECTED CONFIG ]] --
-local function RunConfig(configName)
-    local rawURL = "https://raw.githubusercontent.com/"..user.."/"..repo.."/"..branch.."/"..path.."/"..configName
-    
-    -- Ambil isi file Raw
-    local s, r = pcall(function() return game:HttpGet(rawURL) end)
-    
-    if s and r then 
-        -- MEMBERSIHKAN STRING (PENTING!)
-        -- Menghapus karakter aneh di awal file yang sering merusak script_key
-        local cleanCode = r:gsub("^\239\187\191", "") 
+        ["Auto Accept Trade"] = true,
+        ["Auto Friend Request"] = true,
+    },
+    ["Auto Trade"] = {
+        ["Enabled"] = true,
+        ["Whitelist Username"] = {"lumibackup31"},
+        ["Category Fish"] = {
+            "Secret",
+            -- {Tier = "Mythic", Variant = "Stone"}, -- Tier + Variant
+        },
+        ["Fish Name"] ={
+            {Name = "Ruby", Variant = "Gemstone"},
+            -- {Variant = "Leviathan's Rage"}, -- Variant Only
+        },
+        ["Item Name"] = {
+            "Evolved Enchant Stone",
+        },
+    },
+    ["Farm Coin Only"] = {
+        ["Enabled"] = false, -- Farm coins only [ cant buy rod, bait, enchant, weather ]
+        ["Target"] = 190000,
+    },
+    ["Selling"] = {
+        ["Auto Sell"] = true,
+        ["Auto Sell Threshold"] = "Mythic",
+        ["Auto Sell Every"] = 50,
+    },
+    ["Doing Quest"] = {
+        ["Auto Ghostfinn Rod"] = false,
+        ["Auto Element Rod"] = false,
+        ["Auto Diamond Rod"] = false,
+        ["Unlock Ancient Ruin"] = false,
+        ["Allowed Sacrifice"] = {
+            "Ghost Shark",
+            "Cryoshade Glider",
+            "Panther Eel",
+            "Queen Crab",
+            "King Crab",
+            "Giant Squid",
+            "Blob Shark",
+            "Ghost Shark",
+            "King Jelly", 
+            "Mosasaur Shark",
+            "Elshark Gran Maja", 
+            "Bone Whale", 
+            "Gladiator Shark", 
+            "Frostborn Shark", 
+        },
+        ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
+
+        ["Minimum Rod"] = "Element Rod",
+    },
+    ["WebHook"] = {
+        ["Link Webhook"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
+        ["Auto Sending"] = true,
+        ["Category"] = {"Secret"},
+
+        ["Link Webhook Quest Complete"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
+    },
+    ["Weather"] = {
+        ["Auto Buying"] = true,
+        ["Minimum Rod"] = "Ghostfinn Rod",
+        ["Weather List"] = {
+            "Cloudy",
+            "Wind",
+            "Storm",
+            "Radiant",
+        },
+    },
+    ["Potions"] = {
+        ["Auto Use"] = true,
+        ["Minimum Rod"] = "Astral Rod",
+    },
+    ["Totems"] = {
+        ["Auto Use"] = true,
+        ["Minimum Rod"] = "Ghostfinn Rod",
+        ["Buy List"] = {
+            ["Mutation Totem"] = 1,
+            "Luck Totem",
+            "Shiny Totem",
+        },
+    },
+    ["Event"] = {
+        ["Start Farm"] = false,
+        ["Minimum Rod"] = "Ghostfinn Rod",
+        ["Event List"] = {
+            "Megalodon Hunt",
+            "Ghost Shark Hunt",
+            "Shark Hunt",
+            -- ["Ancient Lochness Monster"] = false,
+        },
+    },
+    ["Enchant"] = {
+        ["Auto Enchant"] = false,
+        ["Roll Enchant"] = false,
+        ["Evolved Roll Enchant"] = false,
+        ["Enchant List"] = {
+            "Empowered I",
+            "Reeler I",
+        },
+        ["Second Enchant"] = false,
+        ["Allowed Sacrifice"] = {
+            "Ghost Shark",
+            "Cryoshade Glider",
+            "Panther Eel",
+            "Queen Crab",
+            "King Crab",
+            "Giant Squid",
+            "Blob Shark",
+            "Ghost Shark",
+            "King Jelly", 
+            "Mosasaur Shark",
+            "Elshark Gran Maja", 
+            "Bone Whale", 
+            "Gladiator Shark", 
+            "Frostborn Shark", 
+        },
+        ["Second Enchant List"] = {
+            "Reeler I",
+            "Perfection",
+            "Empowered I,",
+        },
+        ["Minimum Rod"] = "Ghostfinn Rod",
+    },
+["Bait List"] = {
+        ["Auto Buying"] = false,
+        ["Buy List"] = {
+        "Midnight Bait",
+        "Chroma Bait",
+        "Corrupt Bait",
+        "Singularity Bait",
+        },
+        ["Endgame"] = "Singularity Bait",
+    },
+    ["Rod List"] = {
+        ["Auto Buying"] = false,
+        ["Buy List"] = {
+        "Grass Rod",
+        "Midnight Rod",
+        "Steampunk Rod",
+        "Astral Rod",
+        "Ares Rod",
+        },
+        ["Location Rods"] = {
+            ["Kohana Volcano"] = {"Starter Rod"},
+            ["Tropical Grove"] = {"Grass Rod", "Midnight Rod", "Astral Rod"},
+            ["Treasure Room"] = {"Diamond Rod", "Element Rod", "Ghostfinn Rod"},
+        },
+        ["Endgame"] = "Diamond Rod",
+    },
+
+    ["ExtremeFpsBoost"] = true,
+    ["UltimatePerformance"] = true,
+    ["Disable3DRender"] = false,
+    ["AutoRemovePlayer"] = true,
+
+    ["AutoReconnect"] = false,
+    ["HideGUI"] = false,
+    ["Debug"] = false,
+    ["EXIT_MAP_IF_DISCONNECT"] = false,
+}
+    script_key="014D239D29E821534EFDDFAC64E30F95";
+
+    local s,r repeat 
+
+    s,r=pcall(function()return game:HttpGet("https://raw.githubusercontent.com/FnDXueyi/roblog/refs/heads/main/fishit-78c86024ea87c8eca577549807421962.lua")end)wait(1)until s;loadstring(r)()
+
         
-        -- Beri jeda 0.5 detik agar Global Environment siap
-        task.wait(0.5)
-        
-        local func, err = loadstring(cleanCode)
-        if func then 
-            func() 
-        else
-            warn("Error Loading Script: " .. tostring(err))
-        end
-    else
-        warn("Gagal mengambil Raw URL: " .. rawURL)
-    end
-end
-
--- [[ MENU PEMILIH CONFIG ]] --
-local function ShowMenu()
-    local apiURL = "https://api.github.com/repos/"..user.."/"..repo.."/contents/"..path
-    local s_api, r_api = pcall(function() return game:HttpGet(apiURL) end)
-    
-    if s_api then
-        local files = game:GetService("HttpService"):JSONDecode(r_api)
-        local validFiles = {}
-        for _, file in pairs(files) do 
-            if file.name:match("%.lua$") then table.insert(validFiles, file) end 
-        end
-
-        local sg = Instance.new("ScreenGui", game.CoreGui)
-        local f = Instance.new("Frame", sg)
-        f.Size = UDim2.new(0, 250, 0, 70 + (#validFiles * 45))
-        f.Position = UDim2.new(0.5, -125, 0.5, -((70 + (#validFiles * 45))/2))
-        f.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-        Instance.new("UICorner", f)
-
-        local yPos = 55
-        for _, file in pairs(validFiles) do
-            local btn = Instance.new("TextButton", f)
-            btn.Size = UDim2.new(0, 210, 0, 38)
-            btn.Position = UDim2.new(0.5, -105, 0, yPos)
-            btn.Text = file.name:gsub("%.lua$", "")
-            btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-            btn.TextColor3 = Color3.new(1,1,1)
-            Instance.new("UICorner", btn)
-
-            btn.MouseButton1Click:Connect(function()
-                writefile(syncFile, file.name)
-                sg:Destroy()
-                RunConfig(file.name)
-            end)
-            yPos = yPos + 45
-        end
-    end
-end
-
--- [[ LOGIC ]] --
-if isfile(syncFile) then
-    RunConfig(readfile(syncFile))
-else
-    ShowMenu()
-end
