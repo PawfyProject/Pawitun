@@ -1,11 +1,11 @@
 -- [[ SETTINGS REPO PAWITUN ]] --
-local user = "PawfyProject"
-local repo = "Pawitun"
-local path = "Config"
+local user = "dandansalsal" -- Berdasarkan gambar profil GitHub kamu
+local repo = "Pawitun"      -- Nama repository kamu
+local path = "Configs"     -- Nama folder dengan 's' sesuai gambar
 local branch = "main"
 
 local syncFile = "current_bot_config.txt"
-local keyFile = "pawitun_key.txt" -- File penyimpan key di workspace
+local keyFile = "pawitun_key.txt" 
 local mainFishIt = "https://raw.githubusercontent.com/FnDXueyi/roblog/refs/heads/main/fishit-78c86024ea87c8eca577549807421962.lua"
 
 -- [[ FUNCTION TO EXECUTE FINAL ]] --
@@ -18,7 +18,8 @@ local function ExecuteFinal(configFileName, userKey)
     -- 1. Load Tabel Config
     local s, r = pcall(function() return game:HttpGet(rawURL) end)
     if s then 
-        loadstring(r)() 
+        local func, err = loadstring(r)
+        if func then func() else warn("Error in Config: " .. err) end
     else
         warn("Gagal mengambil config dari GitHub!")
     end
@@ -41,6 +42,7 @@ end
 -- [[ UI HELPER FUNCTIONS ]] --
 local function createBaseGUI(title, height)
     local sg = Instance.new("ScreenGui", game.CoreGui)
+    sg.Name = "PawitunUI"
     local f = Instance.new("Frame", sg)
     f.Size = UDim2.new(0, 250, 0, height)
     f.Position = UDim2.new(0.5, -125, 0.5, - (height/2))
@@ -58,16 +60,15 @@ local function createBaseGUI(title, height)
     return sg, f
 end
 
--- [[ LOGIC FLOW ]] --
+-- [[ MAIN LOGIC FLOW ]] --
 
--- STEP 1: CEK KEY
+-- STEP 1: CEK KEY LOKAL
 if not isfile(keyFile) then
-    -- GUI INPUT KEY
-    local sg, f = createBaseGUI("INPUT SCRIPT KEY", 150)
+    local sg, f = createBaseGUI("INPUT SCRIPT KEY", 160)
     
     local txt = Instance.new("TextBox", f)
-    txt.Size = UDim2.new(0, 200, 0, 35)
-    txt.Position = UDim2.new(0.5, -100, 0, 55)
+    txt.Size = UDim2.new(0, 210, 0, 35)
+    txt.Position = UDim2.new(0.5, -105, 0, 55)
     txt.PlaceholderText = "Paste Key Here..."
     txt.Text = ""
     txt.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -75,21 +76,22 @@ if not isfile(keyFile) then
     Instance.new("UICorner", txt)
 
     local btn = Instance.new("TextButton", f)
-    btn.Size = UDim2.new(0, 200, 0, 35)
-    btn.Position = UDim2.new(0.5, -100, 0, 100)
+    btn.Size = UDim2.new(0, 210, 0, 35)
+    btn.Position = UDim2.new(0.5, -105, 0, 105)
     btn.Text = "SAVE & CONTINUE"
     btn.BackgroundColor3 = Color3.fromRGB(70, 150, 70)
     btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.GothamBold
     Instance.new("UICorner", btn)
 
     btn.MouseButton1Click:Connect(function()
         if txt.Text ~= "" then
-            writefile(keyFile, txt.Text) -- Simpan key ke PC
+            writefile(keyFile, txt.Text) 
             sg:Destroy()
             game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Success", Text = "Key Saved! Please Restart Script."})
         end
     end)
-    return -- Berhenti di sini sampai user restart atau input key
+    return 
 end
 
 local currentKey = readfile(keyFile)
@@ -98,19 +100,23 @@ local currentKey = readfile(keyFile)
 if isfile(syncFile) then
     ExecuteFinal(readfile(syncFile), currentKey)
 else
-    -- Ambil Daftar File dari GitHub API
+    -- Ambil Daftar File dari GitHub API secara Otomatis
     local apiURL = "https://api.github.com/repos/"..user.."/"..repo.."/contents/"..path
     local s_api, r_api = pcall(function() return game:HttpGet(apiURL) end)
     
-    if not s_api then warn("GitHub API Error!") return end
+    if not s_api then warn("GitHub API Error! Coba lagi nanti.") return end
     
     local files = game:GetService("HttpService"):JSONDecode(r_api)
     local validFiles = {}
-    for _, file in pairs(files) do if file.name:match("%.lua$") then table.insert(validFiles, file) end end
+    for _, file in pairs(files) do 
+        if file.name:match("%.lua$") then 
+            table.insert(validFiles, file) 
+        end 
+    end
 
     -- GUI PILIH CONFIG
-    local sg, f = createBaseGUI("SELECT CONFIG", 60 + (#validFiles * 45))
-    local yPos = 50
+    local sg, f = createBaseGUI("SELECT CONFIG", 70 + (#validFiles * 45))
+    local yPos = 55
     for _, file in pairs(validFiles) do
         local btn = Instance.new("TextButton", f)
         btn.Size = UDim2.new(0, 210, 0, 38)
@@ -118,10 +124,11 @@ else
         btn.Text = file.name:gsub("%.lua$", "")
         btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         btn.TextColor3 = Color3.new(1,1,1)
+        btn.Font = Enum.Font.GothamSemibold
         Instance.new("UICorner", btn)
 
         btn.MouseButton1Click:Connect(function()
-            writefile(syncFile, file.name) -- Simpan pilihan bot
+            writefile(syncFile, file.name) 
             sg:Destroy()
             ExecuteFinal(file.name, currentKey)
         end)
