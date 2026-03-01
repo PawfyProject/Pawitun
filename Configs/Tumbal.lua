@@ -61,7 +61,7 @@ _G.FishItConfig = _G.FishItConfig or {
             "Gladiator Shark", 
             "Frostborn Shark", 
         },
-        ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
+        ["FARM_LOC_SECRET_SACRIFICE"] = "Crater Island",
 
         ["Minimum Rod"] = "Element Rod",
     },
@@ -100,8 +100,6 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Minimum Rod"] = "Ghostfinn Rod",
         ["Event List"] = {
             "Megalodon Hunt",
-            "Ghost Shark Hunt",
-            "Shark Hunt",
             -- ["Ancient Lochness Monster"] = false,
         },
     },
