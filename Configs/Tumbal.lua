@@ -13,11 +13,11 @@ _G.FishItConfig = _G.FishItConfig or {
             -- {Tier = "Secret", Variant = "Leviathan's Rage"},  -- Tier + Variant
         },
 
-        ["Auto Accept Trade"] = true,
-        ["Auto Friend Request"] = true,
+        ["Auto Accept Trade"] = false,
+        ["Auto Friend Request"] = false,
     },
     ["Auto Trade"] = {
-        ["Enabled"] = true,
+        ["Enabled"] = false,
         ["Whitelist Username"] = {"lumibackup31"},
         ["Category Fish"] = {
             "Secret",
@@ -36,7 +36,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Target"] = 190000,
     },
     ["Selling"] = {
-        ["Auto Sell"] = true,
+        ["Auto Sell"] = false,
         ["Auto Sell Threshold"] = "Mythic",
         ["Auto Sell Every"] = 50,
     },
