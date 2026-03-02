@@ -1,48 +1,34 @@
 ----------------------------------------------------------------
--- ======= [ LYNX CONFIG & PRE-LOADING ] =======
+-- ======= [ CONFIGURATION & PRE-LOADING ] =======
 ----------------------------------------------------------------
-local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Mengambil asset logo untuk sinkronisasi visual [cite: 111, 158]
-local MyLogoID = "rbxassetid://104332967321169" 
-
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Pawfy Trade System",
-    SubTitle = "v4.9 - Mumet Kontol",
+    Title = "PAWFY TRADE",
+    SubTitle = "v1.0.0",
     TabWidth = 140,
-    Size = UDim2.fromOffset(480, 480),
+    Size = UDim2.fromOffset(300, 380),
     Acrylic = false, 
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.RightControl
 })
 
 ----------------------------------------------------------------
--- ======= [ CORE DATA & NET SCANNER ] =======
+-- ======= [ CORE DATA SERVICES ] =======
 ----------------------------------------------------------------
+local Replion, ItemUtility, DataReplion
 local MyInventory = {}
 local UnfavoriteOnly = false 
-local Replion, ItemUtility, DataReplion
-
--- Deteksi Sleitnick Net secara dinamis (Logic dari script teman Anda) [cite: 156]
-local NetFolder = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("_Index")
-local FavoriteRemote
 
 task.spawn(function()
-    for _, v in pairs(NetFolder:GetDescendants()) do
-        if v.Name == "RE/FavoriteItem" or (v.Name == "net" and v:IsA("RemoteEvent")) then
-            FavoriteRemote = v
-            break
-        end
-    end
-    
     pcall(function()
+        local packages = ReplicatedStorage:WaitForChild("Packages", 30)
         local shared = ReplicatedStorage:WaitForChild("Shared", 30)
-        Replion = require(ReplicatedStorage.Packages.Replion)
+        Replion = require(packages:WaitForChild("Replion"))
         ItemUtility = require(shared:WaitForChild("ItemUtility"))
         repeat 
             DataReplion = Replion.Client:GetReplion("Data")
@@ -52,47 +38,44 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ ADVANCED FILTER SYSTEM ] =======
+-- ======= [ THE "IMPOSSIBLE TO FAIL" FILTER ] =======
 ----------------------------------------------------------------
-
-local function isFishFavorite(item)
-    -- 1. Cek Metadata (Paling Akurat di Fisch) [cite: 156]
-    if item.InventoryItem and item.InventoryItem.Metadata then
-        if item.InventoryItem.Metadata.Favorite or item.InventoryItem.Metadata.IsFavorite then
-            return true
-        end
-    end
-    
-    -- 2. Cek Properti Langsung 
-    if item.Favorite or item.IsFavorite or item.Fav then
-        return true
-    end
-    
-    return false
-end
 
 local function scanAndSync()
     table.clear(MyInventory)
     
     local data = DataReplion and DataReplion:Get("Inventory")
+    local favData = DataReplion and DataReplion:Get("Favorites") -- MENGAMBIL TABEL FAVORIT TERPISAH
     local items = (data and data.Items) or {}
+    
+    -- Buat Map UUID Favorit untuk pengecekan super cepat & akurat
+    local favoriteMap = {}
+    if favData and type(favData) == "table" then
+        for _, favUUID in pairs(favData) do
+            favoriteMap[favUUID] = true
+        end
+    end
     
     for _, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
             
-            local isFav = isFishFavorite(item)
+            -- CEK APAKAH UUID IKAN INI ADA DI DAFTAR FAVORIT GAME
+            local isFav = favoriteMap[item.UUID] or false
             
-            -- Filter Logika: Jika Unfavorite Only AKTIF dan ikan adalah FAV, maka SKIP.
-            if UnfavoriteOnly and isFav then
-                continue 
+            -- Jika Unfavorite Only AKTIF dan ikan ini FAVORIT, maka jangan masukkan (SKIP)
+            local shouldEntry = true
+            if UnfavoriteOnly == true and isFav == true then
+                shouldEntry = false
             end
             
-            table.insert(MyInventory, {
-                Name = base.Data.Name,
-                UUID = item.UUID,
-                IsFav = isFav
-            })
+            if shouldEntry then
+                table.insert(MyInventory, {
+                    Name = base.Data.Name,
+                    UUID = item.UUID,
+                    IsFav = isFav
+                })
+            end
         end
     end
 end
@@ -107,16 +90,17 @@ local Tabs = {
 
 local FT_Sec = Tabs.Fish:AddSection("Trade Controller")
 
--- Filter Toggle
+-- Toggle Filter
 FT_Sec:AddToggle("FT_Fav", { 
-    Title = "Strict Filter: Hide Favorites", 
+    Title = "Unfavorite Only (Hide Starred)", 
     Default = false, 
     Callback = function(v) 
         UnfavoriteOnly = v 
+        Fluent:Notify({Title = "Filter Changed", Content = "Filter is now: " .. (v and "ON" or "OFF"), Duration = 2})
     end 
 })
 
--- Dropdown Select Fish
+-- Dropdown Ikan
 local FT_Drop = FT_Sec:AddDropdown("FT_Item", { 
     Title = "Select Fish", 
     Values = {"Sync to start"}, 
@@ -124,10 +108,9 @@ local FT_Drop = FT_Sec:AddDropdown("FT_Item", {
 })
 
 FT_Sec:AddButton({ 
-    Title = "Sync Backpack (Lynx Method)", 
+    Title = "Sync Backpack", 
     Callback = function()
-        -- [CRITICAL FIX] Paksa UI reset agar tidak ada sisa data lama
-        FT_Drop:SetValues({"[CLEANING UI...]"})
+        FT_Drop:SetValues({"Loading..."})
         task.wait(0.2)
         
         scanAndSync()
@@ -142,12 +125,12 @@ FT_Sec:AddButton({
         end
         table.sort(display)
         
-        FT_Drop:SetValues(#display > 0 and display or {"NO FISH MATCH FILTER"})
+        FT_Drop:SetValues(#display > 0 and display or {"NO FISH FOUND"})
         
         Fluent:Notify({
-            Title = "Lynx Sync Success", 
-            Content = "Filtered " .. #MyInventory .. " fishes.", 
-            Duration = 2
+            Title = "Sync Success", 
+            Content = "Showing " .. #MyInventory .. " non-favorite fishes.", 
+            Duration = 3
         })
     end 
 })
@@ -155,12 +138,14 @@ FT_Sec:AddButton({
 FT_Sec:AddInput("FT_Qty", { Title = "Quantity", Default = "1", Numeric = true })
 FT_Sec:AddToggle("FT_Go", { Title = "START AUTO TRADE", Default = false })
 
--- Diagnostics
-Tabs.Settings:AddButton({ Title = "Deep Debug (F9)", Callback = function()
-    print("--- LYNX DEBUG v4.9 ---")
-    scanAndSync()
-    for _, v in pairs(MyInventory) do
-        print(string.format("Fish: %s | UUID: %s | Favorite: %s", v.Name, v.UUID, tostring(v.IsFav)))
+-- Debugging
+Tabs.Settings:AddButton({ Title = "Check Favorites Table (F9)", Callback = function()
+    local favData = DataReplion:Get("Favorites")
+    print("--- RAW FAVORITES DATA ---")
+    if favData then
+        for i, uuid in pairs(favData) do print(i, uuid) end
+    else
+        print("Favorites table not found!")
     end
 end })
 
