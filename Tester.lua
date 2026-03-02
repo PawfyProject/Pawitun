@@ -12,9 +12,9 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "FISCH ULTIMATE CONTROL",
-    SubTitle = "v4.5 - Pure Trade & Anti-Fav",
+    SubTitle = "v4.6 - Deep Scan Edition",
     TabWidth = 140,
-    Size = UDim2.fromOffset(480, 450), -- Ukuran disesuaikan karena Rarity Trade dihapus
+    Size = UDim2.fromOffset(480, 450),
     Acrylic = false, 
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.RightControl,
@@ -46,11 +46,28 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ ENHANCED ACCURACY SCANNER ] =======
+-- ======= [ DEEP SCAN LOGIC ] =======
 ----------------------------------------------------------------
 
+local function deepFavoriteCheck(item)
+    -- Mengecek segala kemungkinan lokasi status favorit di memori game
+    if item.Favorite == true or item.IsFavorite == true or item.Fav == true then return true end
+    
+    -- Cek di dalam sub-tabel Data (Lokasi paling umum untuk metadata ikan)
+    if item.Data and type(item.Data) == "table" then
+        if item.Data.Favorite == true or item.Data.IsFavorite == true or item.Data.Fav == true then
+            return true
+        end
+    end
+    
+    -- Cek apakah ada folder/value fisik (Beberapa exploit/game lama menggunakan ini)
+    if item.Value and type(item.Value) == "table" and item.Value.Favorite then return true end
+    
+    return false
+end
+
 local function fullBruteForceScan()
-    table.clear(MyInventory) -- Membersihkan cache memori script
+    table.clear(MyInventory) -- Membersihkan cache agar tidak ada data favorit nyangkut
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
     
@@ -58,26 +75,21 @@ local function fullBruteForceScan()
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
             
-            -- [STRICT CHECK] Deteksi Favorit Berlapis
-            local isFav = false
-            if item.Favorite == true or item.IsFavorite == true or item.Fav == true then
-                isFav = true
-            elseif item.Data and (item.Data.Favorite == true or item.Data.IsFavorite == true) then
-                isFav = true
-            end
+            -- Pengecekan mendalam status favorit
+            local isFav = deepFavoriteCheck(item)
             
-            -- Filter Logika: Jika UnfavoriteOnly AKTIF, lewati item Favorit
-            local canAdd = true
+            -- Filter: Jika Unfavorite Only AKTIF, maka ikan Favorit (isFav = true) akan di-SKIP
+            local shouldAdd = true
             if UnfavoriteOnly == true and isFav == true then 
-                canAdd = false 
+                shouldAdd = false 
             end
             
-            if canAdd then
+            if shouldAdd then
                 table.insert(MyInventory, {
                     Name = base.Data.Name,
                     Tier = tostring(base.Data.Tier),
                     UUID = item.UUID,
-                    IsFavorite = isFav -- Simpan status untuk debug
+                    IsFavorite = isFav
                 })
             end
         end
@@ -128,7 +140,7 @@ end })
 local FT_Drop = FT_Sec:AddDropdown("FT_Item", { Title = "2. Select Fish", Values = {"Click Sync!"}, Multi = false })
 FT_Sec:AddButton({ Title = "Sync Backpack & Filter", Callback = function()
     FT_Drop:SetValues(getFishDropdownList())
-    Fluent:Notify({Title = "Backpack Synced", Content = "Found " .. #MyInventory .. " fishes in current filter.", Duration = 3})
+    Fluent:Notify({Title = "Backpack Synced", Content = "Found " .. #MyInventory .. " fishes.", Duration = 3})
 end })
 
 FT_Sec:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
@@ -141,9 +153,8 @@ AT_Sec:AddToggle("AutoAccept", { Title = "Enable Auto-Accept Trade", Default = f
 -- [ SECTION: SETTINGS ]
 local Conf = Tabs.Settings:AddSection("Diagnostics")
 Conf:AddButton({ Title = "Check Fav Status (F9 Console)", Callback = function()
-    print("--- DIAGNOSTIC UNFAVORITE v4.5 ---")
-    print("Mode Unfavorite Only: " .. tostring(UnfavoriteOnly))
-    fullBruteForceScan() -- Re-scan untuk data murni
+    print("--- DIAGNOSTIC v4.6 ---")
+    fullBruteForceScan()
     for i, v in pairs(MyInventory) do
         print(string.format("[%d] %s | Fav: %s | UUID: %s", i, v.Name, tostring(v.IsFavorite), v.UUID))
     end
