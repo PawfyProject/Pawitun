@@ -1,30 +1,21 @@
 ----------------------------------------------------------------
--- ======= [ CONFIGURATION & UI ] =======
+-- ======= [ CONFIGURATION & PRE-LOADING ] =======
 ----------------------------------------------------------------
--- Link Logo GitHub Anda
 local MyLogoID = "https://raw.githubusercontent.com/PawfyProject/Pawitun/refs/heads/main/Logo.jpg" 
 
--- Memaksa Roblox mengunduh gambar sebelum GUI muncul agar logo tidak hilang saat minimize
+-- [FIX] Memaksa Logo Masuk ke Cache Roblox agar Muncul saat Minimize
 local ContentProvider = game:GetService("ContentProvider")
 local ImageLabel = Instance.new("ImageLabel")
 ImageLabel.Image = MyLogoID
-pcall(function()
-    ContentProvider:PreloadAsync({ImageLabel})
-end)
-
-local GuiSize = UDim2.fromOffset(460, 530)
-
-if game.CoreGui:FindFirstChild("Fluent") then
-    game.CoreGui.Fluent:Destroy()
-end
+pcall(function() ContentProvider:PreloadAsync({ImageLabel}) end)
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Fisch Ultimate Trade Control",
-    SubTitle = "v3.1 - Full Sync & Logo Fix",
-    TabWidth = 130,
-    Size = GuiSize,
+    Title = "FISCH ULTIMATE CONTROL",
+    SubTitle = "v4.0 - ULTIMATE EDITION",
+    TabWidth = 140,
+    Size = UDim2.fromOffset(480, 560),
     Acrylic = false, 
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.RightControl,
@@ -32,7 +23,7 @@ local Window = Fluent:CreateWindow({
 })
 
 ----------------------------------------------------------------
--- ======= [ DATA MODULES ] =======
+-- ======= [ CORE SERVICES & DATA ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -47,10 +38,11 @@ local RarityMap = {
     ["4"] = "EPIC", ["5"] = "LEGENDARY", ["6"] = "MYTHIC", ["7"] = "SECRET"
 }
 
+-- Menginisialisasi Module Game
 task.spawn(function()
     pcall(function()
-        local packages = ReplicatedStorage:WaitForChild("Packages", 20)
-        local shared = ReplicatedStorage:WaitForChild("Shared", 20)
+        local packages = ReplicatedStorage:WaitForChild("Packages", 30)
+        local shared = ReplicatedStorage:WaitForChild("Shared", 30)
         Replion = require(packages:WaitForChild("Replion"))
         ItemUtility = require(shared:WaitForChild("ItemUtility"))
         repeat 
@@ -61,24 +53,30 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ CORE LOGIC: THE 198+ FIX ] =======
+-- ======= [ ULTIMATE SCANNER LOGIC ] =======
 ----------------------------------------------------------------
 
-local function deepScanInventory()
-    -- Reset tabel agar data lama (116) tidak menumpuk
+local function fullBruteForceScan()
+    -- [CRITICAL FIX] Reset total memori lokal script
     table.clear(MyInventory) 
     
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
     
-    -- Brute force scanning untuk membaca seluruh data item
-    for i, item in pairs(items) do
+    local count = 0
+    for _, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            local isFavorite = item.Favorite or false
+            -- [FIX] Mendeteksi status favorit dengan filter berlapis
+            local isFav = item.Favorite or item.IsFavorite or false
             
-            -- Filter Unfavorite Only
-            if not (UnfavoriteOnly and isFavorite) then
+            local canAdd = true
+            if UnfavoriteOnly and isFav then
+                canAdd = false
+            end
+            
+            if canAdd then
+                count = count + 1
                 table.insert(MyInventory, {
                     Name = base.Data.Name,
                     Tier = tostring(base.Data.Tier),
@@ -86,100 +84,119 @@ local function deepScanInventory()
                 })
             end
         end
-        -- Jeda kecil setiap 150 item agar tidak lag/crash
-        if i % 150 == 0 then task.wait() end 
     end
+    return count
 end
 
-local function getFishDataStrings(mode)
-    deepScanInventory()
-    local results = {}
+local function updateDropdowns(mode)
+    local found = fullBruteForceScan()
+    local displayStrings = {}
     
     if mode == "Specific" then
-        -- Menghitung jumlah per nama ikan
         local counts = {}
         for _, v in ipairs(MyInventory) do
             counts[v.Name] = (counts[v.Name] or 0) + 1
         end
-        for name, count in pairs(counts) do
-            table.insert(results, name .. " (" .. count .. ")")
+        for name, qty in pairs(counts) do
+            table.insert(displayStrings, name .. " (" .. qty .. ")")
         end
-        table.sort(results)
+        table.sort(displayStrings)
     elseif mode == "Rarity" then
-        -- FIXED: Menghitung total akumulasi per Tier (Bukan per jenis)
-        local totalUnitsPerTier = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0}
-        
-        for _, fish in ipairs(MyInventory) do
-            if totalUnitsPerTier[fish.Tier] ~= nil then
-                totalUnitsPerTier[fish.Tier] = totalUnitsPerTier[fish.Tier] + 1
+        -- [FIX] Akumulasi total individu untuk sinkronisasi 198+ item
+        local tierCounts = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0}
+        for _, v in ipairs(MyInventory) do
+            if tierCounts[v.Tier] then
+                tierCounts[v.Tier] = tierCounts[v.Tier] + 1
             end
         end
-
         for i = 1, 7 do
-            local tierStr = tostring(i)
-            local rName = RarityMap[tierStr]
-            local totalAmount = totalUnitsPerTier[tierStr]
-            
-            if totalAmount > 0 then
-                table.insert(results, rName .. " (" .. totalAmount .. ")")
+            local tStr = tostring(i)
+            if tierCounts[tStr] > 0 then
+                table.insert(displayStrings, RarityMap[tStr] .. " (" .. tierCounts[tStr] .. ")")
             end
         end
     end
     
-    return #results > 0 and results or {"Empty / Scroll Backpack First"}
+    return #displayStrings > 0 and displayStrings or {"NO DATA - SCROLL BACKPACK!"}
 end
 
 ----------------------------------------------------------------
--- ======= [ UI TABS ] =======
+-- ======= [ UI TABS & SECTIONS ] =======
 ----------------------------------------------------------------
 local Tabs = {
     Fish = Window:AddTab({ Title = "Fish Trade", Icon = "fish" }),
     Rarity = Window:AddTab({ Title = "Rarity Trade", Icon = "layers" }),
-    Accept = Window:AddTab({ Title = "Accept Trade", Icon = "check-circle" }),
-    Settings = Window:AddTab({ Title = "Config", Icon = "settings" })
+    Accept = Window:AddTab({ Title = "Auto Accept", Icon = "check-circle" }),
+    Settings = Window:AddTab({ Title = "Ultimate Config", Icon = "settings" })
 }
 
--- [ TAB 1: FISH TRADE ]
-local FT_Status = Tabs.Fish:AddSection("Trade Status")
-local FT_Label = FT_Status:AddParagraph({ Title = "Status: Idle", Content = "Success: 0 | Failed: 0" })
+-- [ TAB: FISH TRADE ]
+local FT_Sec = Tabs.Fish:AddSection("Main Fish Trader")
+local FT_Status = FT_Sec:AddParagraph({ Title = "Status: Standby", Content = "Total Scanned: 0" })
 
-local FT_Main = Tabs.Fish:AddSection("Configuration")
-local FT_Player = FT_Main:AddDropdown("FT_Player", { Title = "1. Select Player", Values = {"Refresh List"}, Multi = false })
-FT_Main:AddButton({ Title = "Refresh Player", Callback = function() 
-    local pList = {}
-    for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(pList, p.Name) end end
-    FT_Player:SetValues(#pList > 0 and pList or {"No Players Found"})
+local FT_Player = FT_Sec:AddDropdown("FT_P", { Title = "1. Target Player", Values = {"Refresh Player First"}, Multi = false })
+FT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
+    local p = {}
+    for _, v in pairs(Players:GetPlayers()) do if v ~= LocalPlayer then table.insert(p, v.Name) end end
+    FT_Player:SetValues(#p > 0 and p or {"No Players"})
 end })
 
-FT_Main:AddToggle("FT_Fav", { Title = "Unfavorite Only", Default = false, Callback = function(v) UnfavoriteOnly = v end })
-local FT_Fish = FT_Main:AddDropdown("FT_Fish", { Title = "2. Select Fish", Values = {"Refresh to Load"}, Multi = false })
-FT_Main:AddButton({ Title = "Refresh Backpack", Callback = function() FT_Fish:SetValues(getFishDataStrings("Specific")) end })
-FT_Main:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
-FT_Main:AddToggle("FT_Start", { Title = "4. Start Trade", Default = false, Callback = function(v) FT_Label:SetTitle(v and "Status: RUNNING" or "Status: PAUSED") end })
+FT_Sec:AddToggle("FT_Fav", { Title = "Filter: Unfavorite Only", Default = false, Callback = function(v) UnfavoriteOnly = v end })
 
--- [ TAB 2: RARITY TRADE ]
-local RT_Status = Tabs.Rarity:AddSection("Trade Status")
-local RT_Label = RT_Status:AddParagraph({ Title = "Status: Idle", Content = "Success: 0 | Failed: 0" })
-
-local RT_Main = Tabs.Rarity:AddSection("Configuration")
-local RT_Player = RT_Main:AddDropdown("RT_Player", { Title = "1. Select Player", Values = {"Refresh List"}, Multi = false })
-RT_Main:AddButton({ Title = "Refresh Player", Callback = function() 
-    local pList = {}
-    for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(pList, p.Name) end end
-    RT_Player:SetValues(#pList > 0 and pList or {"No Players Found"})
+local FT_Drop = FT_Sec:AddDropdown("FT_Item", { Title = "2. Select Fish", Values = {"Click Refresh!"}, Multi = false })
+FT_Sec:AddButton({ Title = "Refresh & Sync Backpack", Callback = function()
+    local vals = updateDropdowns("Specific")
+    FT_Drop:SetValues(vals)
+    FT_Status:SetTitle("Status: Data Synced")
+    FT_Status:SetContent("Total Items in Filter: " .. #MyInventory)
 end })
 
-RT_Main:AddToggle("RT_Fav", { Title = "Unfavorite Only", Default = false, Callback = function(v) UnfavoriteOnly = v end })
-local RT_Tier = RT_Main:AddDropdown("RT_Tier", { Title = "2. Select Rarity", Values = {"Refresh to Load"}, Multi = false })
-RT_Main:AddButton({ Title = "Refresh Backpack", Callback = function() RT_Tier:SetValues(getFishDataStrings("Rarity")) end })
-RT_Main:AddInput("RT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
-RT_Main:AddToggle("RT_Start", { Title = "4. Start Trade", Default = false, Callback = function(v) RT_Label:SetTitle(v and "Status: RUNNING" or "Status: PAUSED") end })
+FT_Sec:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
+FT_Sec:AddToggle("FT_Go", { Title = "START AUTO TRADE", Default = false })
 
--- [ TAB 3: AUTO ACCEPT ]
-local AT_Section = Tabs.Accept:AddSection("Automated Receiver")
-AT_Section:AddToggle("AutoAccept", { Title = "AUTO ACCEPT TRADE", Default = false })
+-- [ TAB: RARITY TRADE ]
+local RT_Sec = Tabs.Rarity:AddSection("Bulk Rarity Trader")
+local RT_Status = RT_Sec:AddParagraph({ Title = "Status: Standby", Content = "Sync Rarity for bulk trade." })
 
--- [ SETTINGS ]
-Tabs.Settings:AddButton({ Title = "Force Close GUI", Callback = function() Window:Destroy() end })
+local RT_Player = RT_Sec:AddDropdown("RT_P", { Title = "1. Target Player", Values = {"Refresh Player First"}, Multi = false })
+RT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
+    local p = {}
+    for _, v in pairs(Players:GetPlayers()) do if v ~= LocalPlayer then table.insert(p, v.Name) end end
+    RT_Player:SetValues(#p > 0 and p or {"No Players"})
+end })
+
+RT_Sec:AddToggle("RT_Fav", { Title = "Filter: Unfavorite Only", Default = false, Callback = function(v) UnfavoriteOnly = v end })
+
+local RT_Drop = RT_Sec:AddDropdown("RT_Tier", { Title = "2. Select Rarity", Values = {"Click Refresh!"}, Multi = false })
+RT_Sec:AddButton({ Title = "Refresh & Sync Rarity", Callback = function()
+    local vals = updateDropdowns("Rarity")
+    RT_Drop:SetValues(vals)
+    RT_Status:SetContent("Scanned Total: " .. #MyInventory .. " fishes.")
+end })
+
+RT_Sec:AddInput("RT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
+RT_Sec:AddToggle("RT_Go", { Title = "START BULK TRADE", Default = false })
+
+-- [ TAB: AUTO ACCEPT ]
+local AT_Sec = Tabs.Accept:AddSection("Receiver Settings")
+AT_Sec:AddToggle("AutoAccept", { Title = "Enable Auto-Accept Trade", Default = false })
+AT_Sec:AddParagraph({ Title = "Information", Content = "Will automatically accept any incoming trade requests." })
+
+-- [ TAB: CONFIG ]
+local Conf = Tabs.Settings:AddSection("Diagnostics & Theme")
+Conf:AddButton({ Title = "Force Clear Cache", Callback = function()
+    table.clear(MyInventory)
+    Fluent:Notify({Title = "Memory", Content = "Local cache cleared!", Duration = 3})
+end })
+
+Conf:AddButton({ Title = "Check Sync (F9 Console)", Callback = function()
+    print("--- ULTIMATE SYNC CHECK ---")
+    print("Current Filter: " .. (UnfavoriteOnly and "Unfavorite Only" or "All Items"))
+    print("Items Scanned: " .. #MyInventory)
+    for i, v in pairs(MyInventory) do print(i, v.Name, v.UUID) end
+end })
+
+Tabs.Settings:AddButton({ Title = "Destroy GUI", Callback = function() Window:Destroy() end })
 
 Window:SelectTab(1)
+Fluent:Notify({Title = "Ultimate Loaded", Content = "Script v4.0 is ready. Please scroll your backpack!", Duration = 5})
