@@ -4,7 +4,6 @@
 local MyLogoID = "https://raw.githubusercontent.com/PawfyProject/Pawitun/refs/heads/main/Logo.jpg" 
 local GuiSize = UDim2.fromOffset(460, 520) 
 
--- Pembersihan UI lama agar tidak menumpuk
 if game.CoreGui:FindFirstChild("Fluent") then
     game.CoreGui.Fluent:Destroy()
 end
@@ -13,13 +12,13 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Fisch Ultimate Trade Control",
-    SubTitle = "v2.6 - Custom Logo Edition",
+    SubTitle = "v2.7 - Deep Scan Fixed",
     TabWidth = 130,
     Size = GuiSize,
     Acrylic = false, 
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.RightControl,
-    MinimizeIcon = MyLogoID -- Ikon kustom dari link GitHub Anda
+    MinimizeIcon = MyLogoID 
 })
 
 ----------------------------------------------------------------
@@ -40,8 +39,8 @@ local RarityMap = {
 
 task.spawn(function()
     pcall(function()
-        local packages = ReplicatedStorage:WaitForChild("Packages", 10)
-        local shared = ReplicatedStorage:WaitForChild("Shared", 10)
+        local packages = ReplicatedStorage:WaitForChild("Packages", 15)
+        local shared = ReplicatedStorage:WaitForChild("Shared", 15)
         Replion = require(packages:WaitForChild("Replion"))
         ItemUtility = require(shared:WaitForChild("ItemUtility"))
         repeat 
@@ -52,39 +51,51 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ IMPROVED LOGIC: ACCURATE GROUPING ] =======
+-- ======= [ DEEP SCAN LOGIC (FIXED ACCURACY) ] =======
 ----------------------------------------------------------------
 
-local function scanInventory()
-    MyInventory = {}
+local function deepScanInventory()
+    -- Membersihkan tabel secara total sebelum scan ulang
+    table.clear(MyInventory) 
+    
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
     
-    for _, item in ipairs(items) do
+    -- Menggunakan loop dengan proteksi performa untuk memastikan semua UUID terbaca
+    for i, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
             local isFavorite = item.Favorite or false
             
-            -- Filter: Lewati jika ikan difavoritkan dan toggle Unfavorite aktif
-            if not (UnfavoriteOnly and isFavorite) then
+            -- Logika Filter Unfavorite
+            if UnfavoriteOnly then
+                if not isFavorite then
+                    table.insert(MyInventory, {
+                        Name = base.Data.Name,
+                        Tier = tostring(base.Data.Tier),
+                        UUID = item.UUID
+                    })
+                end
+            else
                 table.insert(MyInventory, {
-                    Name = base.Data.Name, -- Nama dasar tanpa Variant
+                    Name = base.Data.Name,
                     Tier = tostring(base.Data.Tier),
                     UUID = item.UUID
                 })
             end
         end
+        -- Mencegah lag jika inventory sangat besar (>500 item)
+        if i % 100 == 0 then task.wait() end 
     end
 end
 
 local function getFishDataStrings(mode)
-    scanInventory()
+    deepScanInventory()
     local results = {}
     local counts = {}
 
     if mode == "Specific" then
         for _, v in ipairs(MyInventory) do
-            -- Kelompokkan ikan berdasarkan nama (Variant digabung)
             counts[v.Name] = (counts[v.Name] or 0) + 1
         end
         for name, count in pairs(counts) do
@@ -95,17 +106,17 @@ local function getFishDataStrings(mode)
             local rarityName = RarityMap[v.Tier] or "UNKNOWN"
             counts[rarityName] = (counts[rarityName] or 0) + 1
         end
-        -- Urutkan berdasarkan tingkat kelangkaan
+        -- Pastikan semua tier muncul di urutan yang benar
         for i=1, 7 do
             local rName = RarityMap[tostring(i)]
-            if counts[rName] then
+            if counts[rName] and counts[rName] > 0 then
                 table.insert(results, rName .. " (" .. counts[rName] .. ")")
             end
         end
     end
     
-    table.sort(results) -- Mengurutkan abjad agar rapi
-    return #results > 0 and results or {"Empty"}
+    table.sort(results)
+    return #results > 0 and results or {"No Data Found"}
 end
 
 ----------------------------------------------------------------
@@ -158,7 +169,6 @@ RT_Main:AddToggle("RT_Start", { Title = "4. Start Trade", Default = false, Callb
 local AT_Section = Tabs.Accept:AddSection("Automated Receiver")
 AT_Section:AddToggle("AutoAccept", { Title = "AUTO ACCEPT TRADE", Default = false })
 
--- [ CONFIG ]
 Tabs.Settings:AddButton({ Title = "Force Close GUI", Callback = function() Window:Destroy() end })
 
 Window:SelectTab(1)
