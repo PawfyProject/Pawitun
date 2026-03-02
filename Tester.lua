@@ -1,7 +1,17 @@
 ----------------------------------------------------------------
 -- ======= [ CONFIGURATION & UI ] =======
 ----------------------------------------------------------------
+-- Link Logo GitHub Anda
 local MyLogoID = "https://raw.githubusercontent.com/PawfyProject/Pawitun/refs/heads/main/Logo.jpg" 
+
+-- Memaksa Roblox mengunduh gambar sebelum GUI muncul agar logo tidak hilang saat minimize
+local ContentProvider = game:GetService("ContentProvider")
+local ImageLabel = Instance.new("ImageLabel")
+ImageLabel.Image = MyLogoID
+pcall(function()
+    ContentProvider:PreloadAsync({ImageLabel})
+end)
+
 local GuiSize = UDim2.fromOffset(460, 530)
 
 if game.CoreGui:FindFirstChild("Fluent") then
@@ -12,7 +22,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Fisch Ultimate Trade Control",
-    SubTitle = "v2.9 - Rarity Counter Fixed",
+    SubTitle = "v3.1 - Full Sync & Logo Fix",
     TabWidth = 130,
     Size = GuiSize,
     Acrylic = false, 
@@ -51,21 +61,23 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ ACCURATE SCANNER ] =======
+-- ======= [ CORE LOGIC: THE 198+ FIX ] =======
 ----------------------------------------------------------------
 
 local function deepScanInventory()
+    -- Reset tabel agar data lama (116) tidak menumpuk
     table.clear(MyInventory) 
     
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
     
+    -- Brute force scanning untuk membaca seluruh data item
     for i, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
             local isFavorite = item.Favorite or false
             
-            -- Filter Favorite
+            -- Filter Unfavorite Only
             if not (UnfavoriteOnly and isFavorite) then
                 table.insert(MyInventory, {
                     Name = base.Data.Name,
@@ -74,6 +86,7 @@ local function deepScanInventory()
                 })
             end
         end
+        -- Jeda kecil setiap 150 item agar tidak lag/crash
         if i % 150 == 0 then task.wait() end 
     end
 end
@@ -83,6 +96,7 @@ local function getFishDataStrings(mode)
     local results = {}
     
     if mode == "Specific" then
+        -- Menghitung jumlah per nama ikan
         local counts = {}
         for _, v in ipairs(MyInventory) do
             counts[v.Name] = (counts[v.Name] or 0) + 1
@@ -92,7 +106,7 @@ local function getFishDataStrings(mode)
         end
         table.sort(results)
     elseif mode == "Rarity" then
-        -- PERBAIKAN TOTAL: Menggunakan accumulator untuk menjumlahkan semua unit ikan
+        -- FIXED: Menghitung total akumulasi per Tier (Bukan per jenis)
         local totalUnitsPerTier = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0}
         
         for _, fish in ipairs(MyInventory) do
@@ -112,7 +126,7 @@ local function getFishDataStrings(mode)
         end
     end
     
-    return #results > 0 and results or {"No Data - Refresh Again"}
+    return #results > 0 and results or {"Empty / Scroll Backpack First"}
 end
 
 ----------------------------------------------------------------
@@ -165,6 +179,7 @@ RT_Main:AddToggle("RT_Start", { Title = "4. Start Trade", Default = false, Callb
 local AT_Section = Tabs.Accept:AddSection("Automated Receiver")
 AT_Section:AddToggle("AutoAccept", { Title = "AUTO ACCEPT TRADE", Default = false })
 
+-- [ SETTINGS ]
 Tabs.Settings:AddButton({ Title = "Force Close GUI", Callback = function() Window:Destroy() end })
 
 Window:SelectTab(1)
