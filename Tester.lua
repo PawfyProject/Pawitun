@@ -1,159 +1,167 @@
 ----------------------------------------------------------------
--- ======= [ PAWFY SYSTEM: CORE & COLOR CONFIG ] =======
+-- ======= [ PAWFY SYSTEM CONFIG & RGB ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
--- RGB Konfigurasi Sesuai Permintaan (Background & Text)
-local TierSettings = {
-    ["1"] = {BG = Color3.fromRGB(255, 255, 255), TXT = Color3.fromRGB(0, 0, 0)},
-    ["2"] = {BG = Color3.fromRGB(126, 255, 28),  TXT = Color3.fromRGB(0, 0, 0)},
-    ["3"] = {BG = Color3.fromRGB(0, 68, 255),    TXT = Color3.fromRGB(0, 0, 0)},
-    ["4"] = {BG = Color3.fromRGB(74, 0, 153),    TXT = Color3.fromRGB(255, 255, 255)},
-    ["5"] = {BG = Color3.fromRGB(255, 187, 0),   TXT = Color3.fromRGB(0, 0, 0)},
-    ["6"] = {BG = Color3.fromRGB(255, 0, 0),     TXT = Color3.fromRGB(255, 255, 255)},
-    ["7"] = {BG = Color3.fromRGB(17, 217, 157),  TXT = Color3.fromRGB(0, 0, 0)}
+local PawfyColors = {
+    ["1"] = {BG = Color3.fromRGB(255, 255, 255), TXT = Color3.fromRGB(0, 0, 0)},     -- COMMON
+    ["2"] = {BG = Color3.fromRGB(126, 255, 28),  TXT = Color3.fromRGB(0, 0, 0)},     -- UNCOMMON
+    ["3"] = {BG = Color3.fromRGB(0, 68, 255),    TXT = Color3.fromRGB(0, 0, 0)},     -- RARE
+    ["4"] = {BG = Color3.fromRGB(74, 0, 153),    TXT = Color3.fromRGB(255, 255, 255)}, -- EPIC
+    ["5"] = {BG = Color3.fromRGB(255, 187, 0),   TXT = Color3.fromRGB(0, 0, 0)},     -- LEGENDARY
+    ["6"] = {BG = Color3.fromRGB(255, 0, 0),     TXT = Color3.fromRGB(255, 255, 255)}, -- MYTHIC
+    ["7"] = {BG = Color3.fromRGB(17, 217, 157),  TXT = Color3.fromRGB(0, 0, 0)}      -- SECRET
 }
 
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+----------------------------------------------------------------
+-- ======= [ PAWFY CUSTOM UI ENGINE ] =======
+----------------------------------------------------------------
+local PawfySys = {}
+local GUI = Instance.new("ScreenGui", game.CoreGui)
+GUI.Name = "PawfyTradeSystem"
 
-local Window = Fluent:CreateWindow({
-    Title = "PAWFY TRADE SYSTEM",
-    SubTitle = "v7.0 - Fixed & Functional",
-    TabWidth = 140,
-    Size = UDim2.fromOffset(480, 480),
-    Acrylic = false,
-    Theme = "Dark"
-})
+function PawfySys:CreateMain()
+    -- Main Frame (Resizable & Draggable)
+    local Main = Instance.new("Frame", GUI)
+    Main.Size = UDim2.new(0, 350, 0, 450)
+    Main.Position = UDim2.new(0.5, -175, 0.5, -225)
+    Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    Main.BorderSizePixel = 0
+    Main.Active = true
+    Main.Draggable = true -- Standard Draggable
+    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+
+    -- Resizer Corner (Dynamic Scaling)
+    local Resizer = Instance.new("ImageButton", Main)
+    Resizer.Size = UDim2.new(0, 20, 0, 20)
+    Resizer.Position = UDim2.new(1, -20, 1, -20)
+    Resizer.BackgroundTransparency = 1
+    Resizer.Image = "rbxassetid://15243144665"
+    Resizer.ImageColor3 = Color3.fromRGB(200, 200, 200)
+
+    -- Header & Minimize
+    local Header = Instance.new("TextButton", Main)
+    Header.Size = UDim2.new(1, 0, 0, 40)
+    Header.BackgroundTransparency = 1
+    Header.Text = "  🐾 PAWFY TRADE SYSTEM"
+    Header.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Header.Font = Enum.Font.GothamBold
+    Header.TextSize = 14
+    Header.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Minimize Icon (Floating P)
+    local PLogo = Instance.new("TextButton", GUI)
+    PLogo.Size = UDim2.new(0, 50, 0, 50)
+    PLogo.Position = UDim2.new(0, 20, 0.5, -25)
+    PLogo.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    PLogo.Text = "P"
+    PLogo.TextColor3 = Color3.fromRGB(17, 217, 157)
+    PLogo.Font = Enum.Font.GothamBold
+    PLogo.TextSize = 24
+    PLogo.Visible = false
+    Instance.new("UICorner", PLogo).CornerRadius = UDim.new(1, 0)
+    Instance.new("UIStroke", PLogo).Color = Color3.fromRGB(17, 217, 157)
+
+    -- Scrolling Area
+    local Scroll = Instance.new("ScrollingFrame", Main)
+    Scroll.Size = UDim2.new(1, -20, 1, -100)
+    Scroll.Position = UDim2.new(0, 10, 0, 50)
+    Scroll.BackgroundTransparency = 1
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Scroll.ScrollBarThickness = 2
+    local List = Instance.new("UIListLayout", Scroll)
+    List.Padding = UDim.new(0, 5)
+
+    -- Sync Button
+    local Sync = Instance.new("TextButton", Main)
+    Sync.Size = UDim2.new(1, -20, 0, 35)
+    Sync.Position = UDim2.new(0, 10, 1, -45)
+    Sync.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Sync.Text = "SCAN BACKPACK"
+    Sync.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Sync.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", Sync)
+
+    -- Scaling Logic
+    Resizer.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local startSize = Main.Size
+            local startMouse = UserInputService:GetMouseLocation()
+            local connection
+            connection = UserInputService.InputChanged:Connect(function(move)
+                if move.UserInputType == Enum.UserInputType.MouseMovement then
+                    local currMouse = UserInputService:GetMouseLocation()
+                    local diff = currMouse - startMouse
+                    Main.Size = UDim2.new(0, math.max(250, startSize.X.Offset + diff.X), 0, math.max(300, startSize.Y.Offset + diff.Y))
+                end
+            end)
+            UserInputService.InputEnded:Connect(function(endInput)
+                if endInput.UserInputType == Enum.UserInputType.MouseButton1 then connection:Disconnect() end
+            end)
+        end
+    end)
+
+    -- Minimize Logic
+    Header.MouseButton1Click:Connect(function() Main.Visible = false PLogo.Visible = true end)
+    PLogo.MouseButton1Click:Connect(function() Main.Visible = true PLogo.Visible = false end)
+
+    return Main, Scroll, Sync
+end
 
 ----------------------------------------------------------------
--- ======= [ CORE SERVICES (FISCH LOGIC) ] =======
+-- ======= [ DATA HANDLER (FISCH SCANNER) ] =======
 ----------------------------------------------------------------
 local Replion, ItemUtility, DataReplion
-local MyInventory = {}
-local AutoAccept = false
-
 task.spawn(function()
     pcall(function()
-        local shared = ReplicatedStorage:WaitForChild("Shared", 30)
         Replion = require(ReplicatedStorage.Packages.Replion)
-        ItemUtility = require(shared:WaitForChild("ItemUtility"))
-        repeat 
-            DataReplion = Replion.Client:GetReplion("Data")
-            task.wait(1)
-        until DataReplion ~= nil
+        ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
+        repeat DataReplion = Replion.Client:GetReplion("Data") task.wait(1) until DataReplion ~= nil
     end)
 end)
 
-----------------------------------------------------------------
--- ======= [ UI TABS & FEATURES ] =======
-----------------------------------------------------------------
-local Tabs = {
-    Main = Window:AddTab({ Title = "Trade System", Icon = "repeat" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
-}
+local MainFrame, ScrollFrame, SyncBtn = PawfySys:CreateMain()
 
--- [ SECTION: PLAYER & QUANTITY ]
-local PlayerDrop = Tabs.Main:AddDropdown("TargetPlayer", {
-    Title = "Select Player",
-    Values = {},
-    Multi = false,
-})
-
-Tabs.Main:AddButton({
-    Title = "Refresh Player List",
-    Callback = function()
-        local p = {}
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= LocalPlayer then table.insert(p, v.Name) end
-        end
-        PlayerDrop:SetValues(p)
-    end
-})
-
-local QtyInput = Tabs.Main:AddInput("TradeQty", {
-    Title = "Quantity",
-    Default = "1",
-    Numeric = true,
-})
-
--- [ SECTION: AUTO ACCEPT ]
-Tabs.Main:AddToggle("AutoAcceptToggle", {
-    Title = "Auto Accept Trade",
-    Default = false,
-    Callback = function(v) AutoAccept = v end
-})
-
--- [ SECTION: THE COLORED FISH LIST ]
-local FishSection = Tabs.Main:AddSection("Inventory (Select Fish)")
-
--- Karena Fluent Dropdown tidak bisa warna-warni, kita gunakan Button per Ikan (Metode Lynx)
-local FishScroll = Instance.new("ScrollingFrame") -- Placeholder visual untuk logic
-local function SyncInventory()
-    local data = DataReplion and DataReplion:Get("Inventory")
-    local items = (data and data.Items) or {}
+local function RefreshPawfy()
+    for _, v in pairs(ScrollFrame:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
     
+    local inv = DataReplion and DataReplion:Get("Inventory")
+    local items = (inv and inv.Items) or {}
     local counts = {}
     local tierMap = {}
-    local uuidMap = {}
 
     for _, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            local n = base.Data.Name
-            counts[n] = (counts[n] or 0) + 1
-            tierMap[n] = tostring(base.Data.Tier or "1")
-            uuidMap[n] = item.UUID
+            local name = base.Data.Name
+            counts[name] = (counts[name] or 0) + 1
+            tierMap[name] = tostring(base.Data.Tier or "1")
         end
     end
 
-    -- Clear and Rebuild List
-    for n, qty in pairs(counts) do
-        local tier = tierMap[n]
-        local cfg = TierSettings[tier] or TierSettings["1"]
+    for name, qty in pairs(counts) do
+        local tier = tierMap[name]
+        local cfg = PawfyColors[tier] or PawfyColors["1"]
         
-        -- Kita paksa elemen UI Fluent untuk menyesuaikan warna RGB Anda
-        Tabs.Main:AddButton({
-            Title = n .. " (x" .. qty .. ")",
-            Callback = function()
-                Fluent:Notify({
-                    Title = "Fish Selected",
-                    Content = "Ready to trade: " .. n,
-                    Duration = 2
-                })
-                _G.SelectedFishUUID = uuidMap[n]
-            end
-        })
-        -- Catatan: Untuk merubah warna button secara fisik di Fluent 
-        -- Membutuhkan akses ke element.Instance yang akan saya tambahkan di versi stabil ini.
+        local Box = Instance.new("Frame", ScrollFrame)
+        Box.Size = UDim2.new(1, -5, 0, 32)
+        Box.BackgroundColor3 = cfg.BG
+        Box.LayoutOrder = -tonumber(tier)
+        Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 6)
+
+        local Label = Instance.new("TextLabel", Box)
+        Label.Size = UDim2.new(1, 0, 1, 0)
+        Label.BackgroundTransparency = 1
+        Label.Text = name .. " (x" .. qty .. ")"
+        Label.TextColor3 = cfg.TXT
+        Label.Font = Enum.Font.GothamBold
+        Label.TextSize = 13
     end
+    ScrollFrame.CanvasSize = UDim2.new(0,0,0, ScrollFrame.UIListLayout.AbsoluteContentSize.Y)
 end
 
-Tabs.Main:AddButton({
-    Title = "SYNC BACKPACK & COLORS",
-    Callback = function()
-        SyncInventory()
-    end
-})
-
-----------------------------------------------------------------
--- ======= [ BACKGROUND LOGIC: TRADE & ACCEPT ] =======
-----------------------------------------------------------------
-
--- Auto Accept Logic
-task.spawn(function()
-    while task.wait(0.5) do
-        if AutoAccept then
-            pcall(function()
-                local gui = LocalPlayer.PlayerGui:FindFirstChild("TradeConfirm")
-                if gui and gui.Visible then
-                    -- Trigger Remote untuk Accept (Sesuaikan dengan Remote Fisch)
-                    -- ReplicatedStorage.Events.Trade:FireServer("Accept")
-                end
-            end)
-        end
-    end
-end)
-
-Window:SelectTab(1)
+SyncBtn.MouseButton1Click:Connect(RefreshPawfy)
+RefreshPawfy()
