@@ -12,7 +12,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "FISCH ULTIMATE CONTROL",
-    SubTitle = "v4.1 - Fix Callback Error",
+    SubTitle = "v4.3 - Anti-Fav & Rarity Fix",
     TabWidth = 140,
     Size = UDim2.fromOffset(480, 560),
     Acrylic = false, 
@@ -33,8 +33,13 @@ local MyInventory = {}
 local UnfavoriteOnly = false 
 
 local RarityMap = {
-    ["1"] = "COMMON", ["2"] = "UNCOMMON", ["3"] = "RARE", 
-    ["4"] = "EPIC", ["5"] = "LEGENDARY", ["6"] = "MYTHIC", ["7"] = "SECRET"
+    ["1"] = "COMMON", 
+    ["2"] = "UNCOMMON", 
+    ["3"] = "RARE", 
+    ["4"] = "EPIC", 
+    ["5"] = "LEGENDARY", 
+    ["6"] = "MYTHIC", 
+    ["7"] = "SECRET"
 }
 
 task.spawn(function()
@@ -63,15 +68,26 @@ local function fullBruteForceScan()
     for _, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            local isFav = item.Favorite or item.IsFavorite or false
+            
+            -- [FIXED] Pengecekan Favorit Berlapis
+            local isFav = false
+            if item.Favorite == true or item.IsFavorite == true or item.Fav == true then
+                isFav = true
+            end
+            
+            -- Logika Filter: Jika UnfavoriteOnly AKTIF, ikan Fav harus DIABAIKAN
             local canAdd = true
-            if UnfavoriteOnly and isFav then canAdd = false end
+            if UnfavoriteOnly == true and isFav == true then 
+                canAdd = false 
+            end
             
             if canAdd then
                 count = count + 1
+                -- Pastikan Tier dibaca sebagai angka lalu ke string untuk validasi akurat
+                local rawTierNum = tonumber(base.Data.Tier) or 0
                 table.insert(MyInventory, {
                     Name = base.Data.Name,
-                    Tier = tostring(base.Data.Tier),
+                    Tier = tostring(rawTierNum),
                     UUID = item.UUID
                 })
             end
@@ -94,10 +110,15 @@ local function updateDropdowns(mode)
         end
         table.sort(displayStrings)
     elseif mode == "Rarity" then
+        -- Inisialisasi hitungan 1-7 (Fixing Tier 6 vs 7)
         local tierCounts = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0}
+        
         for _, v in ipairs(MyInventory) do
-            if tierCounts[v.Tier] then tierCounts[v.Tier] = tierCounts[v.Tier] + 1 end
+            if tierCounts[v.Tier] ~= nil then
+                tierCounts[v.Tier] = tierCounts[v.Tier] + 1
+            end
         end
+
         for i = 1, 7 do
             local tStr = tostring(i)
             if tierCounts[tStr] > 0 then
@@ -105,7 +126,8 @@ local function updateDropdowns(mode)
             end
         end
     end
-    return #displayStrings > 0 and displayStrings or {"NO DATA - SCROLL BACKPACK!"}
+    
+    return #displayStrings > 0 and displayStrings or {"NO DATA - REFRESH!"}
 end
 
 ----------------------------------------------------------------
@@ -128,13 +150,16 @@ FT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
     FT_Player:SetValues(#p > 0 and p or {"No Players"})
 end })
 
-FT_Sec:AddToggle("FT_Fav", { Title = "Filter: Unfavorite Only", Default = false, Callback = function(v) UnfavoriteOnly = v end })
+FT_Sec:AddToggle("FT_Fav", { Title = "Filter: Unfavorite Only", Default = false, Callback = function(v) 
+    UnfavoriteOnly = v 
+    Fluent:Notify({Title = "Filter Changed", Content = "Unfavorite Only: " .. tostring(v), Duration = 2})
+end })
 
 local FT_Drop = FT_Sec:AddDropdown("FT_Item", { Title = "2. Select Fish", Values = {"Click Refresh!"}, Multi = false })
 FT_Sec:AddButton({ Title = "Refresh & Sync Backpack", Callback = function()
     local vals = updateDropdowns("Specific")
     FT_Drop:SetValues(vals)
-    Fluent:Notify({Title = "Backpack Synced", Content = "Total: " .. #MyInventory .. " fish found.", Duration = 3})
+    Fluent:Notify({Title = "Backpack Synced", Content = "Total: " .. #MyInventory .. " fish.", Duration = 3})
 end })
 
 FT_Sec:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
@@ -150,7 +175,10 @@ RT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
     RT_Player:SetValues(#p > 0 and p or {"No Players"})
 end })
 
-RT_Sec:AddToggle("RT_Fav", { Title = "Filter: Unfavorite Only", Default = false, Callback = function(v) UnfavoriteOnly = v end })
+RT_Sec:AddToggle("RT_Fav", { Title = "Filter: Unfavorite Only", Default = false, Callback = function(v) 
+    UnfavoriteOnly = v 
+    Fluent:Notify({Title = "Filter Changed", Content = "Unfavorite Only: " .. tostring(v), Duration = 2})
+end })
 
 local RT_Drop = RT_Sec:AddDropdown("RT_Tier", { Title = "2. Select Rarity", Values = {"Click Refresh!"}, Multi = false })
 RT_Sec:AddButton({ Title = "Refresh & Sync Rarity", Callback = function()
@@ -162,15 +190,14 @@ end })
 RT_Sec:AddInput("RT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
 RT_Sec:AddToggle("RT_Go", { Title = "START BULK TRADE", Default = false })
 
--- [ TAB: AUTO ACCEPT ]
-local AT_Sec = Tabs.Accept:AddSection("Receiver Settings")
-AT_Sec:AddToggle("AutoAccept", { Title = "Enable Auto-Accept Trade", Default = false })
-
 -- [ TAB: CONFIG ]
 local Conf = Tabs.Settings:AddSection("Diagnostics")
 Conf:AddButton({ Title = "Check Sync (F9 Console)", Callback = function()
-    print("--- ULTIMATE SYNC CHECK ---")
-    print("Items Scanned: " .. #MyInventory)
+    print("--- SYNC CHECK v4.3 ---")
+    print("Filter Unfavorite: " .. tostring(UnfavoriteOnly))
+    for _, v in pairs(MyInventory) do
+        print("Fish: " .. v.Name .. " | Tier: " .. v.Tier)
+    end
 end })
 
 Tabs.Settings:AddButton({ Title = "Destroy GUI", Callback = function() Window:Destroy() end })
