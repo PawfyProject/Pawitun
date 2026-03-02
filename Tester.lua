@@ -2,7 +2,7 @@
 -- ======= [ CONFIGURATION ] =======
 ----------------------------------------------------------------
 local SimulationMode = true 
-local DefaultSize = UDim2.fromOffset(420, 350) -- Ukuran lebih compact
+local DefaultSize = UDim2.fromOffset(450, 380)
 
 ----------------------------------------------------------------
 -- ======= [ LOAD FLUENT UI LIBRARY ] =======
@@ -10,8 +10,8 @@ local DefaultSize = UDim2.fromOffset(420, 350) -- Ukuran lebih compact
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Fisch Trade SIM v1.5",
-    SubTitle = "Grouping & Discovery",
+    Title = "Fisch Trade Tool",
+    SubTitle = "v1.6 - Fixed Grouping",
     TabWidth = 110,
     Size = DefaultSize,
     Acrylic = false, 
@@ -20,7 +20,7 @@ local Window = Fluent:CreateWindow({
 })
 
 ----------------------------------------------------------------
--- ======= [ DATA SCANNER (REAL DETECTION) ] =======
+-- ======= [ DATA SCANNER MODULE ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -37,54 +37,50 @@ end)
 
 local state = {
     SelectedTier = "7",
-    AutoAccept = false
 }
 
 ----------------------------------------------------------------
--- ======= [ GROUPING LOGIC FUNCTIONS ] =======
+-- ======= [ CORE LOGIC: GROUPING SYSTEM ] =======
 ----------------------------------------------------------------
 
--- 1. Deteksi Player Asli
-local function getRealPlayers()
-    local pList = {}
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then table.insert(pList, p.Name) end
-    end
-    return #pList > 0 and pList or {"Tidak ada player"}
-end
-
--- 2. Deteksi Ikan dengan Fitur Grouping (Nama (Quantity))
-local function scanAndGroupInventory(tier)
+-- Fungsi utama untuk scan dan menggabungkan nama yang sama
+local function getGroupedFishList(tier)
     if not DataReplion or not ItemUtility then 
-        return { {display = "Data Not Linked", count = 0} } 
+        return {"Data Not Found"} 
     end
     
     local inventory = DataReplion:Get("Inventory")
     local items = (inventory and inventory.Items) or {}
     
-    local fishCounts = {} -- Tabel untuk menghitung jumlah per nama
+    local counts = {} -- Tempat menyimpan jumlah ikan berdasarkan nama
     
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
             if tostring(base.Data.Tier) == tostring(tier) then
-                local fishName = base.Data.Name
-                -- Tambahkan ke hitungan jika nama sudah ada
-                fishCounts[fishName] = (fishCounts[fishName] or 0) + 1
+                local name = base.Data.Name
+                counts[name] = (counts[name] or 0) + 1
             end
         end
     end
     
-    -- Ubah hasil hitungan menjadi array untuk tampilan UI
-    local result = {}
-    for name, count in pairs(fishCounts) do
-        table.insert(result, {
-            display = name .. " (" .. count .. ")",
-            rawName = name,
-            count = count
-        })
+    local displayList = {}
+    for name, amount in pairs(counts) do
+        -- Format: "Nama Ikan (xJumlah)"
+        table.insert(displayList, name .. " (x" .. amount .. ")")
     end
-    return result
+    
+    if #displayList == 0 then return {"Tidak ada ikan di Tier ini"} end
+    table.sort(displayList) -- Urutkan sesuai abjad
+    return displayList
+end
+
+local function getRealPlayers()
+    local pList = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then table.insert(pList, p.Name) end
+    end
+    return #pList > 0 and pList or {"Tidak ada player lain"}
 end
 
 ----------------------------------------------------------------
@@ -95,87 +91,62 @@ local Tabs = {
     Receive = Window:AddTab({ Title = "Accept", Icon = "download" })
 }
 
-local MainSection = Tabs.Main:AddSection("Inventory Scanner")
+local MainSection = Tabs.Main:AddSection("Inventory & Trade")
 
-MainSection:AddParagraph({
-    Title = "Fitur Grouping Aktif",
-    Content = "Ikan dengan nama yang sama akan ditampilkan sebagai: Nama (Jumlah)."
-})
-
--- Player Selection
+-- 1. Dropdown Player
 local PlayerDropdown = MainSection:AddDropdown("TargetPlayer", {
-    Title = "Target Player",
+    Title = "Select Player",
     Values = getRealPlayers(),
     Multi = false,
 })
 
--- Tier Selection
+-- 2. Dropdown Tier (Memicu update pada daftar ikan)
 local TierDropdown = MainSection:AddDropdown("TierFilter", {
-    Title = "Pilih Tier untuk Di-scan",
+    Title = "Pilih Tier",
     Values = {"1", "2", "3", "4", "5", "6", "7", "Secret"},
     Default = "7",
-    Callback = function(v) state.SelectedTier = v end
+    Callback = function(v) 
+        state.SelectedTier = v 
+        -- Update otomatis daftar ikan saat tier diganti
+        local newList = getGroupedFishList(v)
+        _G.FishDisplayDropdown:SetValues(newList)
+    end
 })
 
--- Tombol Scan & Lihat Hasil Grouping
+-- 3. DROPDOWN HASIL SCAN (Ini yang memperbaiki tampilan berulang Anda)
+_G.FishDisplayDropdown = MainSection:AddDropdown("FishInBackpack", {
+    Title = "Ikan Ditemukan (Grouped)",
+    Values = getGroupedFishList(state.SelectedTier),
+    Multi = false,
+    Description = "Ikan dengan nama sama otomatis digabung"
+})
+
 MainSection:AddButton({
-    Title = "Cek Backpack (Grouped)",
-    Description = "Lihat daftar ikan yang ditemukan",
+    Title = "Refresh Data",
+    Description = "Update daftar player dan isi backpack",
     Callback = function()
-        local groupedFish = scanAndGroupInventory(state.SelectedTier)
-        
-        if #groupedFish > 0 then
-            local fullList = ""
-            local totalFish = 0
-            for _, fish in ipairs(groupedFish) do
-                fullList = fullList .. "- " .. fish.display .. "\n"
-                totalFish = totalFish + fish.count
-            end
-            
-            Fluent:Notify({
-                Title = "Hasil Scan Tier " .. state.SelectedTier,
-                Content = "Total " .. totalFish .. " ikan ditemukan:\n" .. fullList,
-                Duration = 6
-            })
-        else
-            Fluent:Notify({
-                Title = "Kosong",
-                Content = "Tidak ada ikan Tier " .. state.SelectedTier .. " di backpack.",
-                Duration = 3
-            })
-        end
+        PlayerDropdown:SetValues(getRealPlayers())
+        _G.FishDisplayDropdown:SetValues(getGroupedFishList(state.SelectedTier))
+        Fluent:Notify({Title = "Updated", Content = "Data inventory telah diperbarui.", Duration = 2})
     end
 })
 
 MainSection:AddButton({
-    Title = "Simulasikan Trade",
+    Title = "Simulasi Trade",
     Callback = function()
-        local target = PlayerDropdown.Value
-        if not target or target == "Tidak ada player" then 
-            return Fluent:Notify({Title = "Error", Content = "Pilih player dulu!"}) 
-        end
-        
         Fluent:Notify({
-            Title = "Simulation Mode",
-            Content = "Menjalankan alur trade ke " .. target .. " (Hanya Visual)",
+            Title = "Simulation",
+            Content = "Menyiapkan pengiriman ikan yang dipilih...",
             Duration = 3
         })
     end
 })
 
 -- [[ TAB RECEIVE ]] --
-local RecSection = Tabs.Receive:AddSection("Settings")
+local RecSection = Tabs.Receive:AddSection("Receiver Settings")
 RecSection:AddToggle("AutoAccept", {
     Title = "Auto Accept Trade",
     Default = false,
-    Callback = function(v) state.AutoAccept = v end
 })
 
 Window:SelectTab(1)
-
--- Resize Manual Tetap Aktif di Pojok Kanan Bawah
-Fluent:Notify({
-    Title = "Safe Mode v1.5",
-    Content = "Grouping Nama (Quantity) Berhasil Ditambahkan.",
-    Duration = 5
-})
