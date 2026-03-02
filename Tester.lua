@@ -1,5 +1,5 @@
 ----------------------------------------------------------------
--- [ CONFIG & BRANDING ]
+-- [ CORE CONFIGURATION ]
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -16,183 +16,224 @@ local PawfyColors = {
     ["7"] = {BG = Color3.fromRGB(17, 217, 157),  TXT = Color3.fromRGB(0, 0, 0)}
 }
 
-local GUI = Instance.new("ScreenGui", game.CoreGui)
-GUI.Name = "PawfyDynamic_v11"
+-- Stats & States
+local SuccessCount = 0
+local FailedCount = 0
+local IsTrading = false
+local AutoAccept = false
+local SelectedFishUUID = nil
 
 ----------------------------------------------------------------
--- [ MAIN UI STRUCTURE ]
+-- [ UI CONSTRUCTION ]
 ----------------------------------------------------------------
+local GUI = Instance.new("ScreenGui", game.CoreGui)
+GUI.Name = "PawfyMaster_v13"
+
 local Main = Instance.new("Frame", GUI)
-Main.Size = UDim2.new(0, 380, 0, 480)
-Main.Position = UDim2.new(0.5, -190, 0.5, -240)
+Main.Size = UDim2.new(0, 420, 0, 550)
+Main.Position = UDim2.new(0.5, -210, 0.5, -275)
 Main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Main.BackgroundTransparency = 0.3 -- 70% Transparan
+Main.BackgroundTransparency = 0.3 -- 70% Transparent
 Main.BorderSizePixel = 0
 Main.Active = true
-Main.ClipsDescendants = false -- Agar resizer terlihat sedikit keluar jika mau
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+local MainStroke = Instance.new("UIStroke", Main)
+MainStroke.Color = Color3.fromRGB(17, 217, 157)
+MainStroke.Thickness = 1.5
 
-local Corner = Instance.new("UICorner", Main)
-Corner.CornerRadius = UDim.new(0, 10)
-
-local Stroke = Instance.new("UIStroke", Main)
-Stroke.Color = Color3.fromRGB(17, 217, 157)
-Stroke.Thickness = 1.8
-Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
--- Minimize Logo P
+-- Minimize Button (P)
 local PLogo = Instance.new("TextButton", GUI)
-PLogo.Size = UDim2.new(0, 55, 0, 55)
-PLogo.Position = UDim2.new(0, 30, 0.5, -27)
-PLogo.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-PLogo.BackgroundTransparency = 0.2
+PLogo.Size = UDim2.new(0, 50, 0, 50)
+PLogo.Position = UDim2.new(0, 20, 0.5, -25)
+PLogo.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+PLogo.BackgroundTransparency = 0.3
 PLogo.Text = "P"
 PLogo.TextColor3 = Color3.fromRGB(17, 217, 157)
 PLogo.Font = Enum.Font.GothamBold
-PLogo.TextSize = 28
+PLogo.TextSize = 25
 PLogo.Visible = false
 Instance.new("UICorner", PLogo).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", PLogo).Color = Color3.fromRGB(17, 217, 157)
 
--- Header (Drag Area)
-local Header = Instance.new("TextButton", Main)
-Header.Size = UDim2.new(1, 0, 0, 45)
-Header.BackgroundTransparency = 1
-Header.Text = "  🐾 PAWFY TRADE SYSTEM"
-Header.TextColor3 = Color3.fromRGB(255, 255, 255)
-Header.Font = Enum.Font.GothamBold
-Header.TextSize = 14
-Header.TextXAlignment = Enum.TextXAlignment.Left
+-- Content Wrapper
+local Content = Instance.new("ScrollingFrame", Main)
+Content.Size = UDim2.new(1, -20, 1, -20)
+Content.Position = UDim2.new(0, 10, 0, 10)
+Content.BackgroundTransparency = 1
+Content.CanvasSize = UDim2.new(0, 0, 0, 650)
+Content.ScrollBarThickness = 2
+local List = Instance.new("UIListLayout", Content)
+List.Padding = UDim.new(0, 12)
 
--- Container for content (Agar menyesuaikan saat Resize)
-local Container = Instance.new("Frame", Main)
-Container.Size = UDim2.new(1, -20, 1, -60)
-Container.Position = UDim2.new(0, 10, 0, 50)
-Container.BackgroundTransparency = 1
-local Layout = Instance.new("UIListLayout", Container)
-Layout.Padding = UDim.new(0, 10)
+----------------------------------------------------------------
+-- [ SECTION: FISH TRADE ]
+----------------------------------------------------------------
+local function CreateSection(title, parent)
+    local T = Instance.new("TextLabel", parent)
+    T.Size = UDim2.new(1, 0, 0, 25)
+    T.Text = "--- " .. title .. " ---"
+    T.TextColor3 = Color3.fromRGB(17, 217, 157)
+    T.Font = Enum.Font.GothamBold
+    T.BackgroundTransparency = 1
+    T.TextSize = 14
+end
 
--- Trade Controls (Player, Qty, AutoAccept)
-local Controls = Instance.new("Frame", Container)
-Controls.Size = UDim2.new(1, 0, 0, 110)
-Controls.BackgroundTransparency = 1
+CreateSection("FISH TRADE", Content)
 
-local TargetInput = Instance.new("TextBox", Controls)
-TargetInput.Size = UDim2.new(1, 0, 0, 30)
-TargetInput.PlaceholderText = "Target Player Name..."
-TargetInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-TargetInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", TargetInput)
+-- Status Trade Label
+local StatLabel = Instance.new("TextLabel", Content)
+StatLabel.Size = UDim2.new(1, 0, 0, 40)
+StatLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+StatLabel.Text = "Success Trade: 0 | Failed Trade: 0\nStatus: IDLE"
+StatLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatLabel.Font = Enum.Font.Gotham
+StatLabel.TextSize = 12
+Instance.new("UICorner", StatLabel)
 
-local QtyInput = Instance.new("TextBox", Controls)
-QtyInput.Size = UDim2.new(0.4, -5, 0, 30)
-QtyInput.Position = UDim2.new(0, 0, 0, 35)
+-- 1. Select Player
+local PlayerInput = Instance.new("TextBox", Content)
+PlayerInput.Size = UDim2.new(1, 0, 0, 35)
+PlayerInput.PlaceholderText = "1. Target Player Name..."
+PlayerInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+PlayerInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", PlayerInput)
+
+local RefreshPlayerBtn = Instance.new("TextButton", Content)
+RefreshPlayerBtn.Size = UDim2.new(1, 0, 0, 30)
+RefreshPlayerBtn.Text = "Refresh Player List"
+RefreshPlayerBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+RefreshPlayerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", RefreshPlayerBtn)
+
+-- 2. Select Fish Area
+local FishListFrame = Instance.new("ScrollingFrame", Content)
+FishListFrame.Size = UDim2.new(1, 0, 0, 150)
+FishListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+FishListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+FishListFrame.ScrollBarThickness = 2
+Instance.new("UIListLayout", FishListFrame).Padding = UDim.new(0, 4)
+Instance.new("UICorner", FishListFrame)
+
+local RefreshBackpackBtn = Instance.new("TextButton", Content)
+RefreshBackpackBtn.Size = UDim2.new(1, 0, 0, 30)
+RefreshBackpackBtn.Text = "Refresh Backpack"
+RefreshBackpackBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+RefreshBackpackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", RefreshBackpackBtn)
+
+-- 3. Quantity
+local QtyInput = Instance.new("TextBox", Content)
+QtyInput.Size = UDim2.new(1, 0, 0, 35)
+QtyInput.PlaceholderText = "3. Quantity"
 QtyInput.Text = "1"
 QtyInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 QtyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 Instance.new("UICorner", QtyInput)
 
-local AutoAcc = Instance.new("TextButton", Controls)
-AutoAcc.Size = UDim2.new(0.6, -5, 0, 30)
-AutoAcc.Position = UDim2.new(0.4, 10, 0, 35)
-AutoAcc.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-AutoAcc.Text = "Auto Accept: OFF"
-AutoAcc.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", AutoAcc)
-
--- Scroll Area for Fish (Dynamic Height)
-local Scroll = Instance.new("ScrollingFrame", Container)
-Scroll.Size = UDim2.new(1, 0, 1, -160)
-Scroll.BackgroundTransparency = 1
-Scroll.ScrollBarThickness = 3
-local ScrollList = Instance.new("UIListLayout", Scroll)
-ScrollList.Padding = UDim.new(0, 5)
-
--- Send Button
-local SendBtn = Instance.new("TextButton", Container)
-SendBtn.Size = UDim2.new(1, 0, 0, 40)
-SendBtn.BackgroundColor3 = Color3.fromRGB(17, 217, 157)
-SendBtn.Text = "SYNC & TRADE"
-SendBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", SendBtn)
+-- 4. Start Trade Toggle
+local StartTradeBtn = Instance.new("TextButton", Content)
+StartTradeBtn.Size = UDim2.new(1, 0, 0, 40)
+StartTradeBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+StartTradeBtn.Text = "START TRADE: OFF"
+StartTradeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StartTradeBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", StartTradeBtn)
 
 ----------------------------------------------------------------
--- [ CORE LOGIC: RESIZE, DRAG, SCAN ]
+-- [ SECTION: ACCEPT TRADE ]
+----------------------------------------------------------------
+CreateSection("ACCEPT TRADE", Content)
+
+local AutoAccBtn = Instance.new("TextButton", Content)
+AutoAccBtn.Size = UDim2.new(1, 0, 0, 40)
+AutoAccBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+AutoAccBtn.Text = "AUTO ACCEPT TRADE: OFF"
+AutoAccBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoAccBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", AutoAccBtn)
+
+----------------------------------------------------------------
+-- [ CORE LOGIC: TRADING, RESIZE, DRAG ]
 ----------------------------------------------------------------
 
--- Dragging Function
-local function EnableDrag(frame)
-    local dragging, dragInput, dragStart, startPos
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true dragStart = input.Position startPos = frame.Position
+-- Resize & Drag System
+local function SetupInteractive(obj)
+    local Resizer = Instance.new("ImageButton", obj)
+    Resizer.Size = UDim2.new(0, 20, 0, 20)
+    Resizer.Position = UDim2.new(1, -20, 1, -20)
+    Resizer.Image = "rbxassetid://15243144665"
+    Resizer.BackgroundTransparency = 1
+    
+    local resizing = false
+    Resizer.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then resizing = true end end)
+    UserInputService.InputChanged:Connect(function(i)
+        if resizing and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local m = UserInputService:GetMouseLocation()
+            local r = m - obj.AbsolutePosition
+            obj.Size = UDim2.new(0, math.max(350, r.X), 0, math.max(400, r.Y))
         end
     end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then resizing = false end end)
 end
-EnableDrag(Main)
+SetupInteractive(Main)
 
--- Resizing Function (Pasti Bisa!)
-local ResizeHandle = Instance.new("ImageButton", Main)
-ResizeHandle.Size = UDim2.new(0, 25, 0, 25)
-ResizeHandle.Position = UDim2.new(1, -25, 1, -25)
-ResizeHandle.BackgroundTransparency = 1
-ResizeHandle.Image = "rbxassetid://15243144665"
-ResizeHandle.ZIndex = 5
-
-local resizing = false
-ResizeHandle.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then resizing = true end end)
-UserInputService.InputChanged:Connect(function(i)
-    if resizing and i.UserInputType == Enum.UserInputType.MouseMovement then
-        local mousePos = UserInputService:GetMouseLocation()
-        local relativePos = mousePos - Main.AbsolutePosition
-        -- Minimal Size: 300x350
-        Main.Size = UDim2.new(0, math.max(300, relativePos.X), 0, math.max(350, relativePos.Y))
-    end
-end)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then resizing = false end end)
-
--- Minimize Logic
-Header.MouseButton1Click:Connect(function() Main.Visible = false PLogo.Visible = true end)
-PLogo.MouseButton1Click:Connect(function() Main.Visible = true PLogo.Visible = false end)
-
--- Fisch Scanner Logic (Replion)
-local function Refresh()
-    for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+-- Data Logic (Backpack Scanner)
+local function RefreshBackpack()
+    for _, v in pairs(FishListFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     pcall(function()
-        local DataReplion = require(ReplicatedStorage.Packages.Replion).Client:GetReplion("Data")
-        local ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
-        local inv = DataReplion:Get("Inventory").Items
+        local Data = require(ReplicatedStorage.Packages.Replion).Client:GetReplion("Data")
+        local ItemUtil = require(ReplicatedStorage.Shared.ItemUtility)
+        local inv = Data:Get("Inventory").Items
         
-        local counts = {} local tiers = {}
+        local counts, tiers, uuids = {}, {}, {}
         for _, item in pairs(inv) do
-            local base = ItemUtility:GetItemData(item.Id)
+            local base = ItemUtil:GetItemData(item.Id)
             if base.Data.Type == "Fish" then
                 local n = base.Data.Name
                 counts[n] = (counts[n] or 0) + 1
                 tiers[n] = tostring(base.Data.Tier or "1")
+                uuids[n] = item.UUID
             end
         end
 
         for n, q in pairs(counts) do
             local cfg = PawfyColors[tiers[n]] or PawfyColors["1"]
-            local B = Instance.new("TextButton", Scroll)
-            B.Size = UDim2.new(1, -8, 0, 35)
+            local B = Instance.new("TextButton", FishListFrame)
+            B.Size = UDim2.new(1, -5, 0, 30)
             B.BackgroundColor3 = cfg.BG
             B.TextColor3 = cfg.TXT
-            B.Text = n .. " (x" .. q .. ")"
+            B.Text = n .. " (" .. q .. ")"
             B.Font = Enum.Font.GothamBold
             B.LayoutOrder = -tonumber(tiers[n])
             Instance.new("UICorner", B)
+            B.MouseButton1Click:Connect(function() 
+                SelectedFishUUID = uuids[n] 
+                StatLabel.Text = "Success Trade: "..SuccessCount.." | Failed: "..FailedCount.."\nSelected: "..n 
+            end)
         end
     end)
-    Scroll.CanvasSize = UDim2.new(0,0,0, ScrollList.AbsoluteContentSize.Y)
+    FishListFrame.CanvasSize = UDim2.new(0,0,0, FishListFrame.UIListLayout.AbsoluteContentSize.Y)
 end
 
-SendBtn.MouseButton1Click:Connect(Refresh)
-Refresh()
+-- Toggles
+StartTradeBtn.MouseButton1Click:Connect(function()
+    IsTrading = not IsTrading
+    StartTradeBtn.Text = "START TRADE: " .. (IsTrading and "ON" or "OFF")
+    StartTradeBtn.BackgroundColor3 = IsTrading and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
+end)
+
+AutoAccBtn.MouseButton1Click:Connect(function()
+    AutoAccept = not AutoAccept
+    AutoAccBtn.Text = "AUTO ACCEPT TRADE: " .. (AutoAccept and "ON" or "OFF")
+    AutoAccBtn.BackgroundColor3 = AutoAccept and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
+end)
+
+-- Minimize
+local HeaderTrigger = Instance.new("TextButton", Main)
+HeaderTrigger.Size = UDim2.new(1, 0, 0, 40)
+HeaderTrigger.BackgroundTransparency = 1
+HeaderTrigger.Text = ""
+HeaderTrigger.MouseButton1Click:Connect(function() Main.Visible = false PLogo.Visible = true end)
+PLogo.MouseButton1Click:Connect(function() Main.Visible = true PLogo.Visible = false end)
+
+RefreshBackpackBtn.MouseButton1Click:Connect(RefreshBackpack)
+RefreshBackpack()
