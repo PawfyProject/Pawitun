@@ -1,5 +1,5 @@
 ----------------------------------------------------------------
--- ======= [ CONFIGURATION & PRE-LOADING ] =======
+-- ======= [ CONFIGURATION & COLOR TABLE ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -7,28 +7,37 @@ local LocalPlayer = Players.LocalPlayer
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
+-- Definisi Warna sesuai permintaan Anda (RGB)
+local TierSettings = {
+    ["1"] = {Name = "COMMON",    BG = Color3.fromRGB(255, 255, 255), Text = Color3.fromRGB(0, 0, 0)},
+    ["2"] = {Name = "UNCOMMON",  BG = Color3.fromRGB(126, 255, 28),  Text = Color3.fromRGB(0, 0, 0)},
+    ["3"] = {Name = "RARE",      BG = Color3.fromRGB(0, 68, 255),    Text = Color3.fromRGB(0, 0, 0)},
+    ["4"] = {Name = "EPIC",      BG = Color3.fromRGB(74, 0, 153),    Text = Color3.fromRGB(255, 255, 255)},
+    ["5"] = {Name = "LEGENDARY", BG = Color3.fromRGB(255, 187, 0),   Text = Color3.fromRGB(0, 0, 0)},
+    ["6"] = {Name = "MYTHIC",    BG = Color3.fromRGB(255, 0, 0),     Text = Color3.fromRGB(255, 255, 255)},
+    ["7"] = {Name = "SECRET",    BG = Color3.fromRGB(17, 217, 157),  Text = Color3.fromRGB(0, 0, 0)}
+}
+
 local Window = Fluent:CreateWindow({
-    Title = "PAWFY TRADE",
-    SubTitle = "v1.0.0",
+    Title = "FISCH ULTIMATE CONTROL",
+    SubTitle = "v5.2 - Color Tier Management",
     TabWidth = 140,
-    Size = UDim2.fromOffset(300, 380),
+    Size = UDim2.fromOffset(480, 480),
     Acrylic = false, 
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.RightControl
 })
 
 ----------------------------------------------------------------
--- ======= [ CORE DATA SERVICES ] =======
+-- ======= [ DATA SERVICES ] =======
 ----------------------------------------------------------------
 local Replion, ItemUtility, DataReplion
 local MyInventory = {}
-local UnfavoriteOnly = false 
 
 task.spawn(function()
     pcall(function()
-        local packages = ReplicatedStorage:WaitForChild("Packages", 30)
         local shared = ReplicatedStorage:WaitForChild("Shared", 30)
-        Replion = require(packages:WaitForChild("Replion"))
+        Replion = require(ReplicatedStorage.Packages.Replion)
         ItemUtility = require(shared:WaitForChild("ItemUtility"))
         repeat 
             DataReplion = Replion.Client:GetReplion("Data")
@@ -38,44 +47,24 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ THE "IMPOSSIBLE TO FAIL" FILTER ] =======
+-- ======= [ SCANNER LOGIC ] =======
 ----------------------------------------------------------------
 
-local function scanAndSync()
+local function scanBackpack()
     table.clear(MyInventory)
-    
     local data = DataReplion and DataReplion:Get("Inventory")
-    local favData = DataReplion and DataReplion:Get("Favorites") -- MENGAMBIL TABEL FAVORIT TERPISAH
     local items = (data and data.Items) or {}
-    
-    -- Buat Map UUID Favorit untuk pengecekan super cepat & akurat
-    local favoriteMap = {}
-    if favData and type(favData) == "table" then
-        for _, favUUID in pairs(favData) do
-            favoriteMap[favUUID] = true
-        end
-    end
     
     for _, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            
-            -- CEK APAKAH UUID IKAN INI ADA DI DAFTAR FAVORIT GAME
-            local isFav = favoriteMap[item.UUID] or false
-            
-            -- Jika Unfavorite Only AKTIF dan ikan ini FAVORIT, maka jangan masukkan (SKIP)
-            local shouldEntry = true
-            if UnfavoriteOnly == true and isFav == true then
-                shouldEntry = false
-            end
-            
-            if shouldEntry then
-                table.insert(MyInventory, {
-                    Name = base.Data.Name,
-                    UUID = item.UUID,
-                    IsFav = isFav
-                })
-            end
+            local tierStr = tostring(base.Data.Tier or "1")
+            table.insert(MyInventory, {
+                Name = base.Data.Name,
+                Tier = tierStr,
+                TierName = TierSettings[tierStr].Name,
+                UUID = item.UUID
+            })
         end
     end
 end
@@ -90,46 +79,43 @@ local Tabs = {
 
 local FT_Sec = Tabs.Fish:AddSection("Trade Controller")
 
--- Toggle Filter
-FT_Sec:AddToggle("FT_Fav", { 
-    Title = "Unfavorite Only (Hide Starred)", 
-    Default = false, 
-    Callback = function(v) 
-        UnfavoriteOnly = v 
-        Fluent:Notify({Title = "Filter Changed", Content = "Filter is now: " .. (v and "ON" or "OFF"), Duration = 2})
-    end 
-})
+-- Target Player
+local FT_Player = FT_Sec:AddDropdown("FT_P", { Title = "1. Target Player", Values = {}, Multi = false })
+FT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
+    local p = {}
+    for _, v in pairs(Players:GetPlayers()) do if v ~= LocalPlayer then table.insert(p, v.Name) end end
+    FT_Player:SetValues(#p > 0 and p or {"No Players"})
+end })
 
--- Dropdown Ikan
-local FT_Drop = FT_Sec:AddDropdown("FT_Item", { 
-    Title = "Select Fish", 
-    Values = {"Sync to start"}, 
-    Multi = false 
-})
+-- Dropdown Ikan dengan Label Tier
+local FT_Drop = FT_Sec:AddDropdown("FT_Item", { Title = "2. Select Fish (Sorted by Rarity)", Values = {"Sync First"}, Multi = false })
 
 FT_Sec:AddButton({ 
-    Title = "Sync Backpack", 
+    Title = "Sync & Sort by Color Tier", 
     Callback = function()
-        FT_Drop:SetValues({"Loading..."})
-        task.wait(0.2)
+        scanBackpack()
         
-        scanAndSync()
-        
+        -- Mengelompokkan ikan berdasarkan Tier untuk visualisasi lebih rapi
         local display = {}
         local countMap = {}
-        for _, v in ipairs(MyInventory) do
-            countMap[v.Name] = (countMap[v.Name] or 0) + 1
-        end
-        for name, qty in pairs(countMap) do
-            table.insert(display, name .. " (" .. qty .. ")")
-        end
-        table.sort(display)
         
-        FT_Drop:SetValues(#display > 0 and display or {"NO FISH FOUND"})
+        for _, v in ipairs(MyInventory) do
+            -- Format: [TIER] Nama Ikan (Qty)
+            local key = "[" .. v.TierName .. "] " .. v.Name
+            countMap[key] = (countMap[key] or 0) + 1
+        end
+        
+        -- Memasukkan ke list dengan urutan Tier tertinggi ke terendah
+        for nameWithTier, qty in pairs(countMap) do
+            table.insert(display, nameWithTier .. " x" .. qty)
+        end
+        table.sort(display) -- Ini akan mengurutkan berdasarkan nama Tier secara alfabetis
+        
+        FT_Drop:SetValues(#display > 0 and display or {"EMPTY"})
         
         Fluent:Notify({
-            Title = "Sync Success", 
-            Content = "Showing " .. #MyInventory .. " non-favorite fishes.", 
+            Title = "Backpack Color-Synced", 
+            Content = "Successfully identified " .. #MyInventory .. " fishes.", 
             Duration = 3
         })
     end 
@@ -138,14 +124,14 @@ FT_Sec:AddButton({
 FT_Sec:AddInput("FT_Qty", { Title = "Quantity", Default = "1", Numeric = true })
 FT_Sec:AddToggle("FT_Go", { Title = "START AUTO TRADE", Default = false })
 
--- Debugging
-Tabs.Settings:AddButton({ Title = "Check Favorites Table (F9)", Callback = function()
-    local favData = DataReplion:Get("Favorites")
-    print("--- RAW FAVORITES DATA ---")
-    if favData then
-        for i, uuid in pairs(favData) do print(i, uuid) end
-    else
-        print("Favorites table not found!")
+-- Diagnostics (Menampilkan Palet Warna Anda di Console)
+Tabs.Settings:AddButton({ Title = "Preview RGB Config (F9)", Callback = function()
+    print("--- CUSTOM RGB CONFIGURATION ---")
+    for tier, cfg in pairs(TierSettings) do
+        print(string.format("Tier %s (%s): BG(%d,%d,%d) Text(%d,%d,%d)", 
+            tier, cfg.Name, 
+            cfg.BG.R*255, cfg.BG.G*255, cfg.BG.B*255,
+            cfg.Text.R*255, cfg.Text.G*255, cfg.Text.B*255))
     end
 end })
 
