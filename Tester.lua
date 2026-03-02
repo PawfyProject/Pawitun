@@ -11,7 +11,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Fisch Trade Tool",
-    SubTitle = "v1.9 - Restoration Fix",
+    SubTitle = "v2.1 - Floating Toggle",
     TabWidth = 110,
     Size = DefaultSize,
     Acrylic = false, 
@@ -35,22 +35,59 @@ pcall(function()
     DataReplion = Replion.Client:WaitReplion("Data")
 end)
 
-local state = {
-    SelectedTier = "7",
+local ReverseRarityMap = {
+    ["COMMON"] = "1", ["UNCOMMON"] = "2", ["RARE"] = "3", 
+    ["EPIC"] = "4", ["LEGENDARY"] = "5", ["MYTHIC"] = "6", ["SECRET"] = "7"
 }
 
+local state = { SelectedRarity = "SECRET" }
+
 ----------------------------------------------------------------
--- ======= [ FIX LOGIC: RESTORE DISPLAY ] =======
+-- ======= [ FLOATING TOGGLE BUTTON ] =======
+----------------------------------------------------------------
+local ScreenGui = Instance.new("ScreenGui")
+local ToggleButton = Instance.new("ImageButton")
+local UICorner = Instance.new("UICorner")
+
+ScreenGui.Name = "FischToggleGui"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleButton.Position = UDim2.new(0.05, 0, 0.15, 0) -- Posisi di kiri atas
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Image = "rbxassetid://10723343321" -- Logo Ikan/Hook
+ToggleButton.Draggable = true -- Bisa digeser manual di layar
+
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = ToggleButton
+
+-- Fungsi Klik Tombol untuk Toggle GUI Utama
+ToggleButton.MouseButton1Click:Connect(function()
+    if Window then
+        -- Library Fluent menggunakan fungsi internal untuk Minimize
+        local isMinimized = Window.Minimized
+        Window:Minimize(not isMinimized)
+        
+        -- Beri efek visual pada tombol saat diklik
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        task.wait(0.1)
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    end
+end)
+
+----------------------------------------------------------------
+-- ======= [ CORE LOGIC: RARITY SYSTEM ] =======
 ----------------------------------------------------------------
 
--- 1. Menghitung jumlah per Tier untuk label Dropdown
-local function getTierLabels()
-    local tierOptions = {"1", "2", "3", "4", "5", "6", "7", "Secret"}
+local function getRarityLabels()
+    local order = {"COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC", "SECRET"}
     local finalLabels = {}
-    
     local inventory = (DataReplion and DataReplion:Get("Inventory")) or {}
     local items = inventory.Items or {}
-    local counts = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0, ["Secret"]=0}
+    local counts = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0}
 
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
@@ -60,17 +97,16 @@ local function getTierLabels()
         end
     end
 
-    for _, t in ipairs(tierOptions) do
-        table.insert(finalLabels, "T" .. t .. " (" .. counts[t] .. ")")
+    for _, name in ipairs(order) do
+        local tierNum = ReverseRarityMap[name]
+        table.insert(finalLabels, name .. " (" .. counts[tierNum] .. ")")
     end
     return finalLabels
 end
 
--- 2. Mengambil daftar ikan dengan format "Nama [Tier] (Quantity)"
-local function getFishDisplayList(tierInput)
-    -- Membersihkan input "T7 (10)" menjadi "7"
-    local cleanTier = tierInput:match("T(%d+)") or tierInput:match("T(%a+)") or tierInput
-    
+local function getFishDisplayList(rarityInput)
+    local cleanName = rarityInput:match("([%a]+)")
+    local targetTier = ReverseRarityMap[cleanName] or "7"
     local inventory = (DataReplion and DataReplion:Get("Inventory")) or {}
     local items = inventory.Items or {}
     local grouped = {}
@@ -78,8 +114,8 @@ local function getFishDisplayList(tierInput)
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            if tostring(base.Data.Tier) == cleanTier then
-                local displayName = base.Data.Name .. " [T" .. base.Data.Tier .. "]"
+            if tostring(base.Data.Tier) == targetTier then
+                local displayName = base.Data.Name .. " [" .. cleanName .. "]"
                 grouped[displayName] = (grouped[displayName] or 0) + 1
             end
         end
@@ -89,9 +125,8 @@ local function getFishDisplayList(tierInput)
     for name, qty in pairs(grouped) do
         table.insert(finalArray, name .. " (x" .. qty .. ")")
     end
-    
     table.sort(finalArray)
-    return #finalArray > 0 and finalArray or {"Kosong di Tier ini"}
+    return #finalArray > 0 and finalArray or {"Kosong di Rarity ini"}
 end
 
 ----------------------------------------------------------------
@@ -104,37 +139,34 @@ local Tabs = {
 
 local MainSection = Tabs.Main:AddSection("Inventory Monitor")
 
--- Dropdown Tier (Rarity)
-_G.TierDropdown = MainSection:AddDropdown("TierFilter", {
+_G.RarityDropdown = MainSection:AddDropdown("RarityFilter", {
     Title = "Select Rarity",
-    Values = getTierLabels(),
-    Default = "T7 (0)",
+    Values = getRarityLabels(),
+    Default = "SECRET (0)",
     Callback = function(v) 
-        state.SelectedTier = v 
+        state.SelectedRarity = v 
         _G.FishDropdown:SetValues(getFishDisplayList(v))
     end
 })
 
--- Dropdown Ikan (Sekarang akan muncul Nama [T7] (xJumlah))
 _G.FishDropdown = MainSection:AddDropdown("FishInBackpack", {
     Title = "Fish in Backpack",
-    Values = {"Pilih Tier untuk scan"},
+    Values = {"Pilih Rarity untuk scan"},
     Multi = false,
 })
 
 MainSection:AddButton({
     Title = "Refresh Data",
     Callback = function()
-        _G.TierDropdown:SetValues(getTierLabels())
-        _G.FishDropdown:SetValues(getFishDisplayList(state.SelectedTier))
-        Fluent:Notify({Title = "Updated", Content = "Daftar ikan telah diperbarui.", Duration = 2})
+        _G.RarityDropdown:SetValues(getRarityLabels())
+        _G.FishDropdown:SetValues(getFishDisplayList(state.SelectedRarity))
+        Fluent:Notify({Title = "Updated", Content = "Data telah diperbarui.", Duration = 2})
     end
 })
 
--- Auto-Init saat start
 task.spawn(function()
     task.wait(1.5)
-    _G.TierDropdown:SetValues(getTierLabels())
+    _G.RarityDropdown:SetValues(getRarityLabels())
 end)
 
 Window:SelectTab(1)
