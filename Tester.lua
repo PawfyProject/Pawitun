@@ -3,7 +3,6 @@
 ----------------------------------------------------------------
 local MyLogoID = "https://raw.githubusercontent.com/PawfyProject/Pawitun/refs/heads/main/Logo.jpg" 
 
--- [FIX] Memaksa Logo Masuk ke Cache Roblox agar Muncul saat Minimize
 local ContentProvider = game:GetService("ContentProvider")
 local ImageLabel = Instance.new("ImageLabel")
 ImageLabel.Image = MyLogoID
@@ -13,7 +12,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "FISCH ULTIMATE CONTROL",
-    SubTitle = "v4.0 - ULTIMATE EDITION",
+    SubTitle = "v4.1 - Fix Callback Error",
     TabWidth = 140,
     Size = UDim2.fromOffset(480, 560),
     Acrylic = false, 
@@ -23,7 +22,7 @@ local Window = Fluent:CreateWindow({
 })
 
 ----------------------------------------------------------------
--- ======= [ CORE SERVICES & DATA ] =======
+-- ======= [ DATA MODULES ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -38,7 +37,6 @@ local RarityMap = {
     ["4"] = "EPIC", ["5"] = "LEGENDARY", ["6"] = "MYTHIC", ["7"] = "SECRET"
 }
 
--- Menginisialisasi Module Game
 task.spawn(function()
     pcall(function()
         local packages = ReplicatedStorage:WaitForChild("Packages", 30)
@@ -57,9 +55,7 @@ end)
 ----------------------------------------------------------------
 
 local function fullBruteForceScan()
-    -- [CRITICAL FIX] Reset total memori lokal script
     table.clear(MyInventory) 
-    
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
     
@@ -67,13 +63,9 @@ local function fullBruteForceScan()
     for _, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            -- [FIX] Mendeteksi status favorit dengan filter berlapis
             local isFav = item.Favorite or item.IsFavorite or false
-            
             local canAdd = true
-            if UnfavoriteOnly and isFav then
-                canAdd = false
-            end
+            if UnfavoriteOnly and isFav then canAdd = false end
             
             if canAdd then
                 count = count + 1
@@ -89,7 +81,7 @@ local function fullBruteForceScan()
 end
 
 local function updateDropdowns(mode)
-    local found = fullBruteForceScan()
+    fullBruteForceScan()
     local displayStrings = {}
     
     if mode == "Specific" then
@@ -102,12 +94,9 @@ local function updateDropdowns(mode)
         end
         table.sort(displayStrings)
     elseif mode == "Rarity" then
-        -- [FIX] Akumulasi total individu untuk sinkronisasi 198+ item
         local tierCounts = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0}
         for _, v in ipairs(MyInventory) do
-            if tierCounts[v.Tier] then
-                tierCounts[v.Tier] = tierCounts[v.Tier] + 1
-            end
+            if tierCounts[v.Tier] then tierCounts[v.Tier] = tierCounts[v.Tier] + 1 end
         end
         for i = 1, 7 do
             local tStr = tostring(i)
@@ -116,12 +105,11 @@ local function updateDropdowns(mode)
             end
         end
     end
-    
     return #displayStrings > 0 and displayStrings or {"NO DATA - SCROLL BACKPACK!"}
 end
 
 ----------------------------------------------------------------
--- ======= [ UI TABS & SECTIONS ] =======
+-- ======= [ UI TABS ] =======
 ----------------------------------------------------------------
 local Tabs = {
     Fish = Window:AddTab({ Title = "Fish Trade", Icon = "fish" }),
@@ -132,7 +120,6 @@ local Tabs = {
 
 -- [ TAB: FISH TRADE ]
 local FT_Sec = Tabs.Fish:AddSection("Main Fish Trader")
-local FT_Status = FT_Sec:AddParagraph({ Title = "Status: Standby", Content = "Total Scanned: 0" })
 
 local FT_Player = FT_Sec:AddDropdown("FT_P", { Title = "1. Target Player", Values = {"Refresh Player First"}, Multi = false })
 FT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
@@ -147,8 +134,7 @@ local FT_Drop = FT_Sec:AddDropdown("FT_Item", { Title = "2. Select Fish", Values
 FT_Sec:AddButton({ Title = "Refresh & Sync Backpack", Callback = function()
     local vals = updateDropdowns("Specific")
     FT_Drop:SetValues(vals)
-    FT_Status:SetTitle("Status: Data Synced")
-    FT_Status:SetContent("Total Items in Filter: " .. #MyInventory)
+    Fluent:Notify({Title = "Backpack Synced", Content = "Total: " .. #MyInventory .. " fish found.", Duration = 3})
 end })
 
 FT_Sec:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
@@ -156,7 +142,6 @@ FT_Sec:AddToggle("FT_Go", { Title = "START AUTO TRADE", Default = false })
 
 -- [ TAB: RARITY TRADE ]
 local RT_Sec = Tabs.Rarity:AddSection("Bulk Rarity Trader")
-local RT_Status = RT_Sec:AddParagraph({ Title = "Status: Standby", Content = "Sync Rarity for bulk trade." })
 
 local RT_Player = RT_Sec:AddDropdown("RT_P", { Title = "1. Target Player", Values = {"Refresh Player First"}, Multi = false })
 RT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
@@ -171,7 +156,7 @@ local RT_Drop = RT_Sec:AddDropdown("RT_Tier", { Title = "2. Select Rarity", Valu
 RT_Sec:AddButton({ Title = "Refresh & Sync Rarity", Callback = function()
     local vals = updateDropdowns("Rarity")
     RT_Drop:SetValues(vals)
-    RT_Status:SetContent("Scanned Total: " .. #MyInventory .. " fishes.")
+    Fluent:Notify({Title = "Rarity Synced", Content = "Scanned Total: " .. #MyInventory, Duration = 3})
 end })
 
 RT_Sec:AddInput("RT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
@@ -180,23 +165,14 @@ RT_Sec:AddToggle("RT_Go", { Title = "START BULK TRADE", Default = false })
 -- [ TAB: AUTO ACCEPT ]
 local AT_Sec = Tabs.Accept:AddSection("Receiver Settings")
 AT_Sec:AddToggle("AutoAccept", { Title = "Enable Auto-Accept Trade", Default = false })
-AT_Sec:AddParagraph({ Title = "Information", Content = "Will automatically accept any incoming trade requests." })
 
 -- [ TAB: CONFIG ]
-local Conf = Tabs.Settings:AddSection("Diagnostics & Theme")
-Conf:AddButton({ Title = "Force Clear Cache", Callback = function()
-    table.clear(MyInventory)
-    Fluent:Notify({Title = "Memory", Content = "Local cache cleared!", Duration = 3})
-end })
-
+local Conf = Tabs.Settings:AddSection("Diagnostics")
 Conf:AddButton({ Title = "Check Sync (F9 Console)", Callback = function()
     print("--- ULTIMATE SYNC CHECK ---")
-    print("Current Filter: " .. (UnfavoriteOnly and "Unfavorite Only" or "All Items"))
     print("Items Scanned: " .. #MyInventory)
-    for i, v in pairs(MyInventory) do print(i, v.Name, v.UUID) end
 end })
 
 Tabs.Settings:AddButton({ Title = "Destroy GUI", Callback = function() Window:Destroy() end })
 
 Window:SelectTab(1)
-Fluent:Notify({Title = "Ultimate Loaded", Content = "Script v4.0 is ready. Please scroll your backpack!", Duration = 5})
