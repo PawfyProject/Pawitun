@@ -12,7 +12,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "FISCH ULTIMATE CONTROL",
-    SubTitle = "v4.6 - Deep Scan Edition",
+    SubTitle = "v4.7 - Strict UI Sync",
     TabWidth = 140,
     Size = UDim2.fromOffset(480, 450),
     Acrylic = false, 
@@ -46,28 +46,26 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ DEEP SCAN LOGIC ] =======
+-- ======= [ CORE LOGIC: FILTER & SYNC ] =======
 ----------------------------------------------------------------
 
-local function deepFavoriteCheck(item)
-    -- Mengecek segala kemungkinan lokasi status favorit di memori game
-    if item.Favorite == true or item.IsFavorite == true or item.Fav == true then return true end
-    
-    -- Cek di dalam sub-tabel Data (Lokasi paling umum untuk metadata ikan)
-    if item.Data and type(item.Data) == "table" then
+local function checkIsFavorite(item)
+    -- Deteksi Favorit dari berbagai layer data
+    local fav = false
+    if item.Favorite == true or item.IsFavorite == true or item.Fav == true then
+        fav = true
+    elseif item.Data and type(item.Data) == "table" then
         if item.Data.Favorite == true or item.Data.IsFavorite == true or item.Data.Fav == true then
-            return true
+            fav = true
         end
     end
-    
-    -- Cek apakah ada folder/value fisik (Beberapa exploit/game lama menggunakan ini)
-    if item.Value and type(item.Value) == "table" and item.Value.Favorite then return true end
-    
-    return false
+    return fav
 end
 
-local function fullBruteForceScan()
-    table.clear(MyInventory) -- Membersihkan cache agar tidak ada data favorit nyangkut
+local function scanAndFilter()
+    -- 1. Kosongkan tabel inventory script sepenuhnya
+    table.clear(MyInventory)
+    
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
     
@@ -75,42 +73,51 @@ local function fullBruteForceScan()
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
             
-            -- Pengecekan mendalam status favorit
-            local isFav = deepFavoriteCheck(item)
+            local isFav = checkIsFavorite(item)
             
-            -- Filter: Jika Unfavorite Only AKTIF, maka ikan Favorit (isFav = true) akan di-SKIP
-            local shouldAdd = true
-            if UnfavoriteOnly == true and isFav == true then 
-                shouldAdd = false 
+            -- 2. LOGIKA FILTER KETAT: 
+            -- Jika toggle Unfavorite AKTIF, dan ikan adalah FAV, maka JANGAN dimasukkan ke tabel
+            local canEntry = true
+            if UnfavoriteOnly == true and isFav == true then
+                canEntry = false
             end
             
-            if shouldAdd then
+            if canEntry then
                 table.insert(MyInventory, {
                     Name = base.Data.Name,
-                    Tier = tostring(base.Data.Tier),
                     UUID = item.UUID,
-                    IsFavorite = isFav
+                    FavStatus = isFav
                 })
             end
         end
     end
 end
 
-local function getFishDropdownList()
-    fullBruteForceScan()
-    local counts = {}
-    local displayStrings = {}
+local function refreshDropdownUI()
+    -- Jalankan scan dan filter terlebih dahulu
+    scanAndFilter()
     
+    local counts = {}
+    local finalDisplay = {}
+    
+    -- Hitung jumlah ikan yang lolos filter
     for _, v in ipairs(MyInventory) do
         counts[v.Name] = (counts[v.Name] or 0) + 1
     end
     
+    -- Konversi ke format string dropdown
     for name, qty in pairs(counts) do
-        table.insert(displayStrings, name .. " (" .. qty .. ")")
+        table.insert(finalDisplay, name .. " (" .. qty .. ")")
     end
     
-    table.sort(displayStrings)
-    return #displayStrings > 0 and displayStrings or {"NO DATA - SCROLL BACKPACK!"}
+    table.sort(finalDisplay)
+    
+    -- Jika kosong, beri keterangan
+    if #finalDisplay == 0 then
+        finalDisplay = {"NO FISH FOUND (Check Filter/Scroll)"}
+    end
+    
+    return finalDisplay
 end
 
 ----------------------------------------------------------------
@@ -122,9 +129,9 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
--- [ SECTION: FISH TRADE ]
 local FT_Sec = Tabs.Fish:AddSection("Trade Controller")
 
+-- Player List
 local FT_Player = FT_Sec:AddDropdown("FT_P", { Title = "1. Target Player", Values = {"Refresh Player First"}, Multi = false })
 FT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
     local p = {}
@@ -132,31 +139,44 @@ FT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
     FT_Player:SetValues(#p > 0 and p or {"No Players Found"})
 end })
 
+-- Toggle Unfavorite
 FT_Sec:AddToggle("FT_Fav", { Title = "Filter: Unfavorite Only", Default = false, Callback = function(v) 
     UnfavoriteOnly = v 
-    Fluent:Notify({Title = "Filter Updated", Content = "Unfavorite Only: " .. tostring(v), Duration = 2})
+    Fluent:Notify({Title = "Filter Updated", Content = "Unfavorite Only is now: " .. tostring(v), Duration = 2})
 end })
 
+-- Dropdown Ikan (Point Utama Perbaikan)
 local FT_Drop = FT_Sec:AddDropdown("FT_Item", { Title = "2. Select Fish", Values = {"Click Sync!"}, Multi = false })
+
 FT_Sec:AddButton({ Title = "Sync Backpack & Filter", Callback = function()
-    FT_Drop:SetValues(getFishDropdownList())
-    Fluent:Notify({Title = "Backpack Synced", Content = "Found " .. #MyInventory .. " fishes.", Duration = 3})
+    -- [CRITICAL FIX] Paksa dropdown Reset sebelum diisi data baru
+    FT_Drop:SetValues({"Processing..."}) 
+    task.wait(0.1)
+    
+    local newList = refreshDropdownUI()
+    FT_Drop:SetValues(newList)
+    
+    Fluent:Notify({
+        Title = "Backpack Synced", 
+        Content = "Found " .. #MyInventory .. " fishes matching your filter.", 
+        Duration = 3
+    })
 end })
 
 FT_Sec:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
 FT_Sec:AddToggle("FT_Go", { Title = "START AUTO TRADE", Default = false })
 
--- [ SECTION: AUTO ACCEPT ]
+-- Auto Accept
 local AT_Sec = Tabs.Accept:AddSection("Receiver Settings")
 AT_Sec:AddToggle("AutoAccept", { Title = "Enable Auto-Accept Trade", Default = false })
 
--- [ SECTION: SETTINGS ]
+-- Diagnostics
 local Conf = Tabs.Settings:AddSection("Diagnostics")
 Conf:AddButton({ Title = "Check Fav Status (F9 Console)", Callback = function()
-    print("--- DIAGNOSTIC v4.6 ---")
-    fullBruteForceScan()
+    print("--- DIAGNOSTIC v4.7 ---")
+    scanAndFilter()
     for i, v in pairs(MyInventory) do
-        print(string.format("[%d] %s | Fav: %s | UUID: %s", i, v.Name, tostring(v.IsFavorite), v.UUID))
+        print(string.format("[%d] %s | Fav: %s", i, v.Name, tostring(v.FavStatus)))
     end
 end })
 
