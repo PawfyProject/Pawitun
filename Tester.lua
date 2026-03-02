@@ -11,7 +11,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Fisch Trade Tool",
-    SubTitle = "v2.2 - Full Complete Version",
+    SubTitle = "v2.3 - Auto Cleanup",
     TabWidth = 110,
     Size = DefaultSize,
     Acrylic = false, 
@@ -43,14 +43,15 @@ local ReverseRarityMap = {
 local state = { SelectedRarity = "SECRET" }
 
 ----------------------------------------------------------------
--- ======= [ FLOATING TOGGLE BUTTON ] =======
+-- ======= [ FLOATING TOGGLE BUTTON + CLEANUP ] =======
 ----------------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
 local ToggleButton = Instance.new("ImageButton")
 local UICorner = Instance.new("UICorner")
 
-ScreenGui.Name = "FischToggleGui"
+ScreenGui.Name = "FischToggleGui_Cleanup"
 ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ResetOnSpawn = false
 
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = ScreenGui
@@ -69,11 +70,18 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- FITUR PERBAIKAN: Menghapus Tombol saat Script di-Unload
+Window:OnUnload(function()
+    if ScreenGui then
+        ScreenGui:Destroy()
+    end
+    print("Script Unloaded: Floating Button Removed.")
+end)
+
 ----------------------------------------------------------------
 -- ======= [ LOGIC FUNCTIONS ] =======
 ----------------------------------------------------------------
 
--- 1. Deteksi Player Asli di Server
 local function getRealPlayers()
     local pList = {}
     for _, p in pairs(Players:GetPlayers()) do
@@ -82,7 +90,6 @@ local function getRealPlayers()
     return #pList > 0 and pList or {"Tidak ada player"}
 end
 
--- 2. Menghitung jumlah per Rarity
 local function getRarityLabels()
     local order = {"COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC", "SECRET"}
     local finalLabels = {}
@@ -105,7 +112,6 @@ local function getRarityLabels()
     return finalLabels
 end
 
--- 3. Daftar Ikan Ter-grouping
 local function getFishDisplayList(rarityInput)
     local cleanName = rarityInput:match("([%a]+)")
     local targetTier = ReverseRarityMap[cleanName] or "7"
@@ -136,19 +142,17 @@ end
 ----------------------------------------------------------------
 local Tabs = {
     Main = Window:AddTab({ Title = "Trade", Icon = "send" }),
-    Receive = Window:AddTab({ Title = "Accept", Icon = "download" })
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
 local MainSection = Tabs.Main:AddSection("Trade & Inventory")
 
--- Dropdown Player (KEMBALI DITAMBAHKAN)
 local PlayerDropdown = MainSection:AddDropdown("TargetPlayer", {
     Title = "Select Target Player",
     Values = getRealPlayers(),
     Multi = false,
 })
 
--- Dropdown Rarity (COMMON - SECRET)
 _G.RarityDropdown = MainSection:AddDropdown("RarityFilter", {
     Title = "Filter by Rarity",
     Values = getRarityLabels(),
@@ -159,7 +163,6 @@ _G.RarityDropdown = MainSection:AddDropdown("RarityFilter", {
     end
 })
 
--- Dropdown Ikan Terdeteksi
 _G.FishDropdown = MainSection:AddDropdown("FishInBackpack", {
     Title = "Fish Found",
     Values = {"Pilih Rarity dulu"},
@@ -168,19 +171,20 @@ _G.FishDropdown = MainSection:AddDropdown("FishInBackpack", {
 
 MainSection:AddButton({
     Title = "Refresh All Data",
-    Description = "Update Player & Inventory",
     Callback = function()
         PlayerDropdown:SetValues(getRealPlayers())
         _G.RarityDropdown:SetValues(getRarityLabels())
         _G.FishDropdown:SetValues(getFishDisplayList(state.SelectedRarity))
-        Fluent:Notify({Title = "System", Content = "Data berhasil diperbarui.", Duration = 2})
+        Fluent:Notify({Title = "System", Content = "Data updated.", Duration = 2})
     end
 })
 
-MainSection:AddButton({
-    Title = "Execute Trade (Simulation)",
+-- Bagian Settings untuk Unload Manual
+Tabs.Settings:AddButton({
+    Title = "Unload Script",
+    Description = "Menghapus semua UI (Menu & Tombol)",
     Callback = function()
-        Fluent:Notify({Title = "Simulasi", Content = "Menyiapkan pengiriman...", Duration = 2})
+        Window:Destroy()
     end
 })
 
