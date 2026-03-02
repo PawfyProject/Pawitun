@@ -15,7 +15,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Fisch Ultimate Trade Control",
-    SubTitle = "v2.0 - Advanced System",
+    SubTitle = "v2.1 - Rarity Mapped",
     TabWidth = 130,
     Size = GuiSize,
     Acrylic = false, 
@@ -24,7 +24,7 @@ local Window = Fluent:CreateWindow({
 })
 
 ----------------------------------------------------------------
--- ======= [ GLOBAL VARIABLES & COUNTERS ] =======
+-- ======= [ DATA SCANNER MODULE ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -32,9 +32,19 @@ local LocalPlayer = Players.LocalPlayer
 
 local Replion, ItemUtility, DataReplion
 local Stats = { Success = 0, Failed = 0 }
-local MyInventory = {} -- Menyimpan data scan terbaru
+local MyInventory = {}
 
--- Fungsi Inisialisasi Data Game
+-- Tabel Pemetaan Rarity
+local RarityMap = {
+    ["1"] = "COMMON",
+    ["2"] = "UNCOMMON",
+    ["3"] = "RARE",
+    ["4"] = "EPIC",
+    ["5"] = "LEGENDARY",
+    ["6"] = "MYTHIC",
+    ["7"] = "SECRET"
+}
+
 task.spawn(function()
     pcall(function()
         local packages = ReplicatedStorage:WaitForChild("Packages", 10)
@@ -49,7 +59,7 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ SCANNER FUNCTIONS ] =======
+-- ======= [ CORE FUNCTIONS ] =======
 ----------------------------------------------------------------
 
 local function getPlayers()
@@ -77,7 +87,6 @@ local function scanInventory()
     end
 end
 
--- Menghitung jumlah ikan spesifik atau per tier
 local function getFishDataStrings(mode)
     scanInventory()
     local results = {}
@@ -92,10 +101,15 @@ local function getFishDataStrings(mode)
         end
     elseif mode == "Rarity" then
         for _, v in ipairs(MyInventory) do
-            counts[v.Tier] = (counts[v.Tier] or 0) + 1
+            local rarityName = RarityMap[v.Tier] or "UNKNOWN"
+            counts[rarityName] = (counts[rarityName] or 0) + 1
         end
-        for tier, count in pairs(counts) do
-            table.insert(results, "Tier " .. tier .. " (" .. count .. ")")
+        -- Menampilkan berdasarkan urutan RarityMap
+        for i=1, 7 do
+            local rName = RarityMap[tostring(i)]
+            if counts[rName] then
+                table.insert(results, rName .. " (" .. counts[rName] .. ")")
+            end
         end
     end
     return #results > 0 and results or {"Empty"}
@@ -122,17 +136,12 @@ local FT_Label = FT_Status:AddParagraph({
 
 local FT_Main = Tabs.Fish:AddSection("Configuration")
 local FT_Player = FT_Main:AddDropdown("FT_Player", { Title = "1. Select Player", Values = getPlayers(), Multi = false })
-
 FT_Main:AddButton({ Title = "Refresh Player", Callback = function() FT_Player:SetValues(getPlayers()) end })
 
 local FT_Fish = FT_Main:AddDropdown("FT_Fish", { Title = "2. Select Fish", Values = {"Refresh to Load"}, Multi = false })
-
 FT_Main:AddButton({ 
     Title = "Refresh Backpack", 
-    Callback = function() 
-        FT_Fish:SetValues(getFishDataStrings("Specific"))
-        Fluent:Notify({Title = "Backpack", Content = "Ikan spesifik diperbarui", Duration = 2})
-    end 
+    Callback = function() FT_Fish:SetValues(getFishDataStrings("Specific")) end 
 })
 
 FT_Main:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
@@ -141,14 +150,7 @@ FT_Main:AddToggle("FT_Start", {
     Title = "4. Start Trade",
     Default = false,
     Callback = function(Value)
-        if Value then
-            FT_Label:SetTitle("Status: RUNNING")
-            -- Simulasi Update Stats
-            Stats.Success = Stats.Success + 1
-            FT_Label:SetText("Success: " .. Stats.Success .. " | Failed: " .. Stats.Failed)
-        else
-            FT_Label:SetTitle("Status: PAUSED")
-        end
+        FT_Label:SetTitle(Value and "Status: RUNNING" or "Status: PAUSED")
     end
 })
 
@@ -163,17 +165,12 @@ local RT_Label = RT_Status:AddParagraph({
 
 local RT_Main = Tabs.Rarity:AddSection("Configuration")
 local RT_Player = RT_Main:AddDropdown("RT_Player", { Title = "1. Select Player", Values = getPlayers(), Multi = false })
-
 RT_Main:AddButton({ Title = "Refresh Player", Callback = function() RT_Player:SetValues(getPlayers()) end })
 
 local RT_Tier = RT_Main:AddDropdown("RT_Tier", { Title = "2. Select Rarity", Values = {"Refresh to Load"}, Multi = false })
-
 RT_Main:AddButton({ 
     Title = "Refresh Backpack", 
-    Callback = function() 
-        RT_Tier:SetValues(getFishDataStrings("Rarity"))
-        Fluent:Notify({Title = "Backpack", Content = "Tier ikan diperbarui", Duration = 2})
-    end 
+    Callback = function() RT_Tier:SetValues(getFishDataStrings("Rarity")) end 
 })
 
 RT_Main:AddInput("RT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
@@ -188,13 +185,7 @@ RT_Main:AddToggle("RT_Start", {
 -- [ TAB 3: ACCEPT TRADE ]
 ----------------------------------------------------------------
 local AT_Section = Tabs.Accept:AddSection("Automated Receiver")
-AT_Section:AddToggle("AutoAccept", {
-    Title = "AUTO ACCEPT TRADE",
-    Default = false,
-    Callback = function(v)
-        Fluent:Notify({Title = "System", Content = "Auto Accept: " .. tostring(v), Duration = 2})
-    end
-})
+AT_Section:AddToggle("AutoAccept", { Title = "AUTO ACCEPT TRADE", Default = false })
 
 ----------------------------------------------------------------
 -- [ SETTINGS & CLEANUP ]
