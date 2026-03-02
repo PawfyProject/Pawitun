@@ -1,11 +1,11 @@
 ----------------------------------------------------------------
--- ======= [ PAWFY SYSTEM CONFIG & RGB ] =======
+-- [ PAWFY ELITE CONFIGURATION ]
 ----------------------------------------------------------------
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local LocalPlayer = game:GetService("Players").LocalPlayer
 
--- Branding: Pawfy Trade System Color Palette
 local PawfyColors = {
     ["1"] = {BG = Color3.fromRGB(255, 255, 255), TXT = Color3.fromRGB(0, 0, 0)},     -- COMMON
     ["2"] = {BG = Color3.fromRGB(126, 255, 28),  TXT = Color3.fromRGB(0, 0, 0)},     -- UNCOMMON
@@ -17,145 +17,162 @@ local PawfyColors = {
 }
 
 ----------------------------------------------------------------
--- ======= [ PAWFY CUSTOM UI ENGINE ] =======
+-- [ UI CONSTRUCTION ]
 ----------------------------------------------------------------
-local PawfySys = {}
 local PawfyGUI = Instance.new("ScreenGui", game.CoreGui)
-PawfyGUI.Name = "PawfyTradeSystem_v5"
+PawfyGUI.Name = "PawfyElite_v6"
 
-function PawfySys:CreateInterface(title)
-    local MainFrame = Instance.new("Frame", PawfyGUI)
-    MainFrame.Size = UDim2.new(0, 330, 0, 450)
-    MainFrame.Position = UDim2.new(0.5, -165, 0.5, -225)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-    MainFrame.BorderSizePixel = 0
-    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+-- Main Container
+local Main = Instance.new("Frame", PawfyGUI)
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 350, 0, 450)
+Main.Position = UDim2.new(0.5, -175, 0.5, -225)
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+local MainCorner = Instance.new("UICorner", Main)
+MainCorner.CornerRadius = UDim.new(0, 12)
 
-    -- Header Pawfy Style
-    local Header = Instance.new("Frame", MainFrame)
-    Header.Size = UDim2.new(1, 0, 0, 40)
-    Header.BackgroundTransparency = 1
-    
-    local Title = Instance.new("TextLabel", Header)
-    Title.Size = UDim2.new(1, 0, 1, 0)
-    Title.BackgroundTransparency = 1
-    Title.Text = "🐾 " .. title
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 15
+-- Resizer Button (Kanan Bawah)
+local Resizer = Instance.new("ImageLabel", Main)
+Resizer.Name = "Resizer"
+Resizer.Size = UDim2.new(0, 20, 0, 20)
+Resizer.Position = UDim2.new(1, -20, 1, -20)
+Resizer.BackgroundTransparency = 1
+Resizer.Image = "rbxassetid://15243144665" -- Icon Resize Ganti jika perlu
+Resizer.ImageColor3 = Color3.fromRGB(100, 100, 100)
+Resizer.ZIndex = 10
 
-    -- Pawfy Search Bar
-    local Search = Instance.new("TextBox", MainFrame)
-    Search.Size = UDim2.new(1, -24, 0, 32)
-    Search.Position = UDim2.new(0, 12, 0, 45)
-    Search.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Search.PlaceholderText = "Search Fish in Pawfy System..."
-    Search.Text = ""
-    Search.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Search.Font = Enum.Font.Gotham
-    Search.TextSize = 12
-    Instance.new("UICorner", Search).CornerRadius = UDim.new(0, 6)
+-- Minimize Logo (P)
+local MinBtn = Instance.new("TextButton", PawfyGUI)
+MinBtn.Name = "MinimizeIcon"
+MinBtn.Size = UDim2.new(0, 50, 0, 50)
+MinBtn.Position = UDim2.new(0, 20, 0.5, -25)
+MinBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MinBtn.Text = "P"
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 25
+MinBtn.TextColor3 = Color3.fromRGB(17, 217, 157)
+MinBtn.Visible = false
+local MinCorner = Instance.new("UICorner", MinBtn)
+MinCorner.CornerRadius = UDim.new(1, 0)
+local MinStroke = Instance.new("UIStroke", MinBtn)
+MinStroke.Color = Color3.fromRGB(17, 217, 157)
+MinStroke.Thickness = 2
 
-    -- Scrolling List Area
-    local Scroll = Instance.new("ScrollingFrame", MainFrame)
-    Scroll.Size = UDim2.new(1, -24, 1, -140)
-    Scroll.Position = UDim2.new(0, 12, 0, 85)
-    Scroll.BackgroundTransparency = 1
-    Scroll.ScrollBarThickness = 2
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-    
-    local Layout = Instance.new("UIListLayout", Scroll)
-    Layout.Padding = UDim.new(0, 6)
-    Layout.SortOrder = Enum.SortOrder.LayoutOrder
+-- Content Scaling (Gunakan UIListLayout untuk adaptasi ukuran)
+local Content = Instance.new("Frame", Main)
+Content.Size = UDim2.new(1, 0, 1, 0)
+Content.BackgroundTransparency = 1
 
-    -- Pawfy Sync Button
-    local Sync = Instance.new("TextButton", MainFrame)
-    Sync.Size = UDim2.new(1, -24, 0, 38)
-    Sync.Position = UDim2.new(0, 12, 1, -48)
-    Sync.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Sync.Text = "UPDATE PAWFY DATABASE"
-    Sync.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Sync.Font = Enum.Font.GothamBold
-    Sync.TextSize = 13
-    Instance.new("UICorner", Sync).CornerRadius = UDim.new(0, 8)
+local Padding = Instance.new("UIPadding", Content)
+Padding.PaddingTop = UDim.new(0, 10)
+Padding.PaddingBottom = UDim.new(0, 10)
+Padding.PaddingLeft = UDim.new(0, 10)
+Padding.PaddingRight = UDim.new(0, 10)
 
-    -- Function to inject colored bars
-    function PawfySys:InjectFish(name, qty, tier)
-        local cfg = PawfyColors[tostring(tier)] or PawfyColors["1"]
-        
-        local Bar = Instance.new("Frame", Scroll)
-        Bar.Name = name:lower()
-        Bar.Size = UDim2.new(1, -6, 0, 32)
-        Bar.BackgroundColor3 = cfg.BG -- WARNA BACKGROUND AKTIF
-        Bar.BorderSizePixel = 0
-        Bar.LayoutOrder = -tonumber(tier) -- Sorting Kasta
-        Instance.new("UICorner", Bar).CornerRadius = UDim.new(0, 6)
+local Title = Instance.new("TextLabel", Content)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "PAWFY TRADE SYSTEM"
+Title.Font = Enum.Font.GothamBold
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.TextSize = 16
 
-        local Label = Instance.new("TextLabel", Bar)
-        Label.Size = UDim2.new(1, 0, 1, 0)
-        Label.BackgroundTransparency = 1
-        Label.Text = name .. " (" .. qty .. ")"
-        Label.TextColor3 = cfg.TXT -- WARNA TEKS AKTIF
-        Label.Font = Enum.Font.GothamBold
-        Label.TextSize = 13
+local Scroll = Instance.new("ScrollingFrame", Content)
+Scroll.Size = UDim2.new(1, 0, 1, -80)
+Scroll.Position = UDim2.new(0, 0, 0, 40)
+Scroll.BackgroundTransparency = 1
+Scroll.ScrollBarThickness = 2
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 
-        Scroll.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y)
-    end
+local ListLayout = Instance.new("UIListLayout", Scroll)
+ListLayout.Padding = UDim.new(0, 5)
 
-    function PawfySys:Purge()
-        for _, v in pairs(Scroll:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-    end
+----------------------------------------------------------------
+-- [ ADVANCED LOGIC: DRAG, RESIZE, MINIMIZE ]
+----------------------------------------------------------------
 
-    -- Search Listener
-    Search:GetPropertyChangedSignal("Text"):Connect(function()
-        local t = Search.Text:lower()
-        for _, v in pairs(Scroll:GetChildren()) do
-            if v:IsA("Frame") then v.Visible = v.Name:find(t) ~= nil end
+-- DRAGGING
+local function makeDraggable(obj)
+    local dragging, dragInput, dragStart, startPos
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true dragStart = input.Position startPos = obj.Position
         end
     end)
-
-    return Sync
-end
-
-----------------------------------------------------------------
--- ======= [ PAWFY DATA HANDLER ] =======
-----------------------------------------------------------------
-local Replion, ItemUtility, DataReplion
-task.spawn(function()
-    pcall(function()
-        Replion = require(ReplicatedStorage.Packages.Replion)
-        ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
-        repeat 
-            DataReplion = Replion.Client:GetReplion("Data")
-            task.wait(1)
-        until DataReplion ~= nil
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            local delta = input.Position - dragStart
+            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
     end)
+    obj.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+end
+makeDraggable(Main)
+
+-- RESIZING
+local resizing = false
+Resizer.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then resizing = true end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if resizing and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local mousePos = UserInputService:GetMouseLocation()
+        local relativePos = mousePos - Main.AbsolutePosition
+        -- Minimal Size Clamp
+        local newX = math.max(250, relativePos.X)
+        local newY = math.max(300, relativePos.Y)
+        Main.Size = UDim2.new(0, newX, 0, newY)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then resizing = false end end)
+
+-- MINIMIZE
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Main:TweenSize(UDim2.new(0,0,0,0), "Out", "Quint", 0.5, true)
+        task.wait(0.5)
+        Main.Visible = false
+        MinBtn.Visible = true
+    end
+end)
+MinBtn.MouseButton1Click:Connect(function()
+    MinBtn.Visible = false
+    Main.Visible = true
+    Main:TweenSize(UDim2.new(0, 350, 0, 450), "Out", "Back", 0.5, true)
 end)
 
-local function PawfyRefresh()
-    PawfySys:Purge()
-    local inv = DataReplion and DataReplion:Get("Inventory")
-    local items = (inv and inv.Items) or {}
+----------------------------------------------------------------
+-- [ PAWFY SYSTEM CORE ]
+----------------------------------------------------------------
+local function AddFish(name, qty, tier)
+    local cfg = PawfyColors[tostring(tier)] or PawfyColors["1"]
+    local Box = Instance.new("Frame", Scroll)
+    Box.Size = UDim2.new(1, -5, 0, 35)
+    Box.BackgroundColor3 = cfg.BG
+    Box.LayoutOrder = -tonumber(tier)
+    Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 6)
     
-    local counts = {}
-    local tierMap = {}
-    for _, item in pairs(items) do
-        local base = ItemUtility:GetItemData(item.Id)
-        if base and base.Data and base.Data.Type == "Fish" then
-            local n = base.Data.Name
-            counts[n] = (counts[n] or 0) + 1
-            tierMap[n] = tostring(base.Data.Tier or "1")
-        end
-    end
-
-    for name, qty in pairs(counts) do
-        PawfySys:InjectFish(name, qty, tierMap[name])
-    end
+    local Label = Instance.new("TextLabel", Box)
+    Label.Size = UDim2.new(1, 0, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = name .. " (" .. qty .. ")"
+    Label.TextColor3 = cfg.TXT
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 13
+    
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
 end
 
-----------------------------------------------------------------
--- ======= [ PAWFY EXECUTION ] =======
-----------------------------------------------------------------
-local FinalButton = PawfySys:CreateInterface("PAWFY TRADE SYSTEM")
-FinalButton.MouseButton1Click:Connect(PawfyRefresh)
-PawfyRefresh()
+-- Loader Logika
+local function Refresh()
+    for _, v in pairs(Scroll:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+    -- Simulasi Data (Ganti dengan DataReplion Anda)
+    AddFish("Abyssal Shark", 2, 7)
+    AddFish("The Kraken", 5, 6)
+    AddFish("Golden Bass", 12, 5)
+    AddFish("Mackerel", 300, 1)
+end
+
+Refresh()
