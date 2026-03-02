@@ -2,7 +2,7 @@
 -- ======= [ CONFIGURATION ] =======
 ----------------------------------------------------------------
 local SimulationMode = true 
-local DefaultSize = UDim2.fromOffset(450, 380)
+local DefaultSize = UDim2.fromOffset(450, 400)
 
 ----------------------------------------------------------------
 -- ======= [ LOAD FLUENT UI LIBRARY ] =======
@@ -11,7 +11,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Fisch Trade Tool",
-    SubTitle = "v1.6 - Fixed Grouping",
+    SubTitle = "v1.7 - Tier Counter",
     TabWidth = 110,
     Size = DefaultSize,
     Acrylic = false, 
@@ -40,24 +40,54 @@ local state = {
 }
 
 ----------------------------------------------------------------
--- ======= [ CORE LOGIC: GROUPING SYSTEM ] =======
+-- ======= [ CORE LOGIC: GROUPING & TIER COUNTER ] =======
 ----------------------------------------------------------------
 
--- Fungsi utama untuk scan dan menggabungkan nama yang sama
-local function getGroupedFishList(tier)
+-- 1. Fungsi untuk menghitung jumlah ikan per Tier (Untuk Dropdown Tier)
+local function getTierValuesWithCount()
+    local tierOptions = {"1", "2", "3", "4", "5", "6", "7", "Secret"}
+    local finalOptions = {}
+    
     if not DataReplion or not ItemUtility then 
-        return {"Data Not Found"} 
+        for _, t in ipairs(tierOptions) do table.insert(finalOptions, "T" .. t .. " (0)") end
+        return finalOptions 
     end
+
+    local inventory = DataReplion:Get("Inventory")
+    local items = (inventory and inventory.Items) or {}
+    local tierCounts = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0, ["Secret"]=0}
+
+    for _, item in ipairs(items) do
+        local base = ItemUtility:GetItemData(item.Id)
+        if base and base.Data and base.Data.Type == "Fish" then
+            local t = tostring(base.Data.Tier)
+            if tierCounts[t] ~= nil then
+                tierCounts[t] = tierCounts[t] + 1
+            end
+        end
+    end
+
+    for _, t in ipairs(tierOptions) do
+        table.insert(finalOptions, "T" .. t .. " (" .. tierCounts[t] .. ")")
+    end
+    return finalOptions
+end
+
+-- 2. Fungsi untuk list ikan (Grouping Nama)
+local function getGroupedFishList(tier)
+    -- Membersihkan input tier dari format "T7 (10)" menjadi "7"
+    local cleanTier = tier:match("T(%d+)") or tier:match("T(%a+)") or tier
+    
+    if not DataReplion or not ItemUtility then return {"Data Not Found"} end
     
     local inventory = DataReplion:Get("Inventory")
     local items = (inventory and inventory.Items) or {}
-    
-    local counts = {} -- Tempat menyimpan jumlah ikan berdasarkan nama
+    local counts = {}
     
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            if tostring(base.Data.Tier) == tostring(tier) then
+            if tostring(base.Data.Tier) == cleanTier then
                 local name = base.Data.Name
                 counts[name] = (counts[name] or 0) + 1
             end
@@ -66,12 +96,11 @@ local function getGroupedFishList(tier)
     
     local displayList = {}
     for name, amount in pairs(counts) do
-        -- Format: "Nama Ikan (xJumlah)"
         table.insert(displayList, name .. " (x" .. amount .. ")")
     end
     
-    if #displayList == 0 then return {"Tidak ada ikan di Tier ini"} end
-    table.sort(displayList) -- Urutkan sesuai abjad
+    if #displayList == 0 then return {"Kosong"} end
+    table.sort(displayList)
     return displayList
 end
 
@@ -80,7 +109,7 @@ local function getRealPlayers()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then table.insert(pList, p.Name) end
     end
-    return #pList > 0 and pList or {"Tidak ada player lain"}
+    return #pList > 0 and pList or {"Tidak ada player"}
 end
 
 ----------------------------------------------------------------
@@ -100,53 +129,45 @@ local PlayerDropdown = MainSection:AddDropdown("TargetPlayer", {
     Multi = false,
 })
 
--- 2. Dropdown Tier (Memicu update pada daftar ikan)
-local TierDropdown = MainSection:AddDropdown("TierFilter", {
-    Title = "Pilih Tier",
-    Values = {"1", "2", "3", "4", "5", "6", "7", "Secret"},
-    Default = "7",
+-- 2. Dropdown Tier dengan COUNTER (Fitur Baru)
+_G.TierDropdown = MainSection:AddDropdown("TierFilter", {
+    Title = "Fish Tiers (Rarity)",
+    Values = getTierValuesWithCount(),
+    Default = "T7 (0)",
     Callback = function(v) 
         state.SelectedTier = v 
-        -- Update otomatis daftar ikan saat tier diganti
         local newList = getGroupedFishList(v)
         _G.FishDisplayDropdown:SetValues(newList)
     end
 })
 
--- 3. DROPDOWN HASIL SCAN (Ini yang memperbaiki tampilan berulang Anda)
+-- 3. Dropdown Ikan (Grouping Nama)
 _G.FishDisplayDropdown = MainSection:AddDropdown("FishInBackpack", {
-    Title = "Ikan Ditemukan (Grouped)",
-    Values = getGroupedFishList(state.SelectedTier),
+    Title = "Fish Found",
+    Values = getGroupedFishList("7"),
     Multi = false,
-    Description = "Ikan dengan nama sama otomatis digabung"
 })
 
 MainSection:AddButton({
-    Title = "Refresh Data",
-    Description = "Update daftar player dan isi backpack",
+    Title = "Refresh All Data",
+    Description = "Update Player, Tier Counts, and Fish List",
     Callback = function()
         PlayerDropdown:SetValues(getRealPlayers())
+        _G.TierDropdown:SetValues(getTierValuesWithCount())
         _G.FishDisplayDropdown:SetValues(getGroupedFishList(state.SelectedTier))
-        Fluent:Notify({Title = "Updated", Content = "Data inventory telah diperbarui.", Duration = 2})
+        Fluent:Notify({Title = "Refresh Success", Content = "Data inventory terbaru telah dimuat.", Duration = 2})
     end
 })
 
 MainSection:AddButton({
-    Title = "Simulasi Trade",
+    Title = "Execute Trade (Sim)",
     Callback = function()
-        Fluent:Notify({
-            Title = "Simulation",
-            Content = "Menyiapkan pengiriman ikan yang dipilih...",
-            Duration = 3
-        })
+        Fluent:Notify({Title = "Simulation", Content = "Alur pengiriman dimulai...", Duration = 2})
     end
 })
 
 -- [[ TAB RECEIVE ]] --
 local RecSection = Tabs.Receive:AddSection("Receiver Settings")
-RecSection:AddToggle("AutoAccept", {
-    Title = "Auto Accept Trade",
-    Default = false,
-})
+RecSection:AddToggle("AutoAccept", { Title = "Auto Accept Trade", Default = false })
 
 Window:SelectTab(1)
