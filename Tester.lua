@@ -1,49 +1,41 @@
 ----------------------------------------------------------------
--- ======= [ CONFIGURATION & CLEANUP ] =======
+-- ======= [ CONFIGURATION ] =======
 ----------------------------------------------------------------
-local SimulationMode = true 
-local GuiSize = UDim2.fromOffset(460, 480)
-local MyLogoID = "rbxassetid://YOUR_ID_HERE" -- GANTI "YOUR_ID_HERE" DENGAN ID LOGO ANDA
+local MyLogoID = "https://raw.githubusercontent.com/PawfyProject/Pawitun/refs/heads/main/Logo.jpg" 
+local GuiSize = UDim2.fromOffset(460, 520) 
 
+-- Pembersihan UI lama agar tidak menumpuk
 if game.CoreGui:FindFirstChild("Fluent") then
     game.CoreGui.Fluent:Destroy()
 end
 
-----------------------------------------------------------------
--- ======= [ LOAD FLUENT UI ] =======
-----------------------------------------------------------------
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Pawfy Trade System",
-    SubTitle = "v1.0.0",
+    Title = "Fisch Ultimate Trade Control",
+    SubTitle = "v2.6 - Custom Logo Edition",
     TabWidth = 130,
     Size = GuiSize,
     Acrylic = false, 
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.RightControl,
-    MinimizeIcon = MyLogoID -- FITUR: Menggunakan Logo Kustom Anda
+    MinimizeIcon = MyLogoID -- Ikon kustom dari link GitHub Anda
 })
 
 ----------------------------------------------------------------
--- ======= [ DATA SCANNER MODULE ] =======
+-- ======= [ DATA SCANNER & MAPPING ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local Replion, ItemUtility, DataReplion
-local Stats = { Success = 0, Failed = 0 }
 local MyInventory = {}
+local UnfavoriteOnly = false 
 
 local RarityMap = {
-    ["1"] = "COMMON",
-    ["2"] = "UNCOMMON",
-    ["3"] = "RARE",
-    ["4"] = "EPIC",
-    ["5"] = "LEGENDARY",
-    ["6"] = "MYTHIC",
-    ["7"] = "SECRET"
+    ["1"] = "COMMON", ["2"] = "UNCOMMON", ["3"] = "RARE", 
+    ["4"] = "EPIC", ["5"] = "LEGENDARY", ["6"] = "MYTHIC", ["7"] = "SECRET"
 }
 
 task.spawn(function()
@@ -60,29 +52,27 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ CORE FUNCTIONS ] =======
+-- ======= [ IMPROVED LOGIC: ACCURATE GROUPING ] =======
 ----------------------------------------------------------------
-
-local function getPlayers()
-    local pList = {}
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then table.insert(pList, p.Name) end
-    end
-    return #pList > 0 and pList or {"No Players Found"}
-end
 
 local function scanInventory()
     MyInventory = {}
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
+    
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            table.insert(MyInventory, {
-                Name = base.Data.Name,
-                Tier = tostring(base.Data.Tier),
-                UUID = item.UUID
-            })
+            local isFavorite = item.Favorite or false
+            
+            -- Filter: Lewati jika ikan difavoritkan dan toggle Unfavorite aktif
+            if not (UnfavoriteOnly and isFavorite) then
+                table.insert(MyInventory, {
+                    Name = base.Data.Name, -- Nama dasar tanpa Variant
+                    Tier = tostring(base.Data.Tier),
+                    UUID = item.UUID
+                })
+            end
         end
     end
 end
@@ -91,8 +81,10 @@ local function getFishDataStrings(mode)
     scanInventory()
     local results = {}
     local counts = {}
+
     if mode == "Specific" then
         for _, v in ipairs(MyInventory) do
+            -- Kelompokkan ikan berdasarkan nama (Variant digabung)
             counts[v.Name] = (counts[v.Name] or 0) + 1
         end
         for name, count in pairs(counts) do
@@ -103,6 +95,7 @@ local function getFishDataStrings(mode)
             local rarityName = RarityMap[v.Tier] or "UNKNOWN"
             counts[rarityName] = (counts[rarityName] or 0) + 1
         end
+        -- Urutkan berdasarkan tingkat kelangkaan
         for i=1, 7 do
             local rName = RarityMap[tostring(i)]
             if counts[rName] then
@@ -110,6 +103,8 @@ local function getFishDataStrings(mode)
             end
         end
     end
+    
+    table.sort(results) -- Mengurutkan abjad agar rapi
     return #results > 0 and results or {"Empty"}
 end
 
@@ -126,9 +121,16 @@ local Tabs = {
 -- [ TAB 1: FISH TRADE ]
 local FT_Status = Tabs.Fish:AddSection("Trade Status")
 local FT_Label = FT_Status:AddParagraph({ Title = "Status: Idle", Content = "Success: 0 | Failed: 0" })
+
 local FT_Main = Tabs.Fish:AddSection("Configuration")
-local FT_Player = FT_Main:AddDropdown("FT_Player", { Title = "1. Select Player", Values = getPlayers(), Multi = false })
-FT_Main:AddButton({ Title = "Refresh Player", Callback = function() FT_Player:SetValues(getPlayers()) end })
+local FT_Player = FT_Main:AddDropdown("FT_Player", { Title = "1. Select Player", Values = {"Refresh Player List"}, Multi = false })
+FT_Main:AddButton({ Title = "Refresh Player", Callback = function() 
+    local pList = {}
+    for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(pList, p.Name) end end
+    FT_Player:SetValues(#pList > 0 and pList or {"No Players Found"})
+end })
+
+FT_Main:AddToggle("FT_Fav", { Title = "Unfavorite Only", Default = false, Callback = function(v) UnfavoriteOnly = v end })
 local FT_Fish = FT_Main:AddDropdown("FT_Fish", { Title = "2. Select Fish", Values = {"Refresh to Load"}, Multi = false })
 FT_Main:AddButton({ Title = "Refresh Backpack", Callback = function() FT_Fish:SetValues(getFishDataStrings("Specific")) end })
 FT_Main:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
@@ -137,9 +139,16 @@ FT_Main:AddToggle("FT_Start", { Title = "4. Start Trade", Default = false, Callb
 -- [ TAB 2: RARITY TRADE ]
 local RT_Status = Tabs.Rarity:AddSection("Trade Status")
 local RT_Label = RT_Status:AddParagraph({ Title = "Status: Idle", Content = "Success: 0 | Failed: 0" })
+
 local RT_Main = Tabs.Rarity:AddSection("Configuration")
-local RT_Player = RT_Main:AddDropdown("RT_Player", { Title = "1. Select Player", Values = getPlayers(), Multi = false })
-RT_Main:AddButton({ Title = "Refresh Player", Callback = function() RT_Player:SetValues(getPlayers()) end })
+local RT_Player = RT_Main:AddDropdown("RT_Player", { Title = "1. Select Player", Values = {"Refresh Player List"}, Multi = false })
+RT_Main:AddButton({ Title = "Refresh Player", Callback = function() 
+    local pList = {}
+    for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(pList, p.Name) end end
+    RT_Player:SetValues(#pList > 0 and pList or {"No Players Found"})
+end })
+
+RT_Main:AddToggle("RT_Fav", { Title = "Unfavorite Only", Default = false, Callback = function(v) UnfavoriteOnly = v end })
 local RT_Tier = RT_Main:AddDropdown("RT_Tier", { Title = "2. Select Rarity", Values = {"Refresh to Load"}, Multi = false })
 RT_Main:AddButton({ Title = "Refresh Backpack", Callback = function() RT_Tier:SetValues(getFishDataStrings("Rarity")) end })
 RT_Main:AddInput("RT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
@@ -149,7 +158,7 @@ RT_Main:AddToggle("RT_Start", { Title = "4. Start Trade", Default = false, Callb
 local AT_Section = Tabs.Accept:AddSection("Automated Receiver")
 AT_Section:AddToggle("AutoAccept", { Title = "AUTO ACCEPT TRADE", Default = false })
 
--- [ SETTINGS ]
+-- [ CONFIG ]
 Tabs.Settings:AddButton({ Title = "Force Close GUI", Callback = function() Window:Destroy() end })
 
 Window:SelectTab(1)
