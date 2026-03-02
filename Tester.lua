@@ -12,7 +12,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Fisch Ultimate Trade Control",
-    SubTitle = "v2.8 - Deep Scan & Counter Fix",
+    SubTitle = "v2.9 - Rarity Counter Fixed",
     TabWidth = 130,
     Size = GuiSize,
     Acrylic = false, 
@@ -51,17 +51,15 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ CORE LOGIC: THE 198+ FIX ] =======
+-- ======= [ ACCURATE SCANNER ] =======
 ----------------------------------------------------------------
 
 local function deepScanInventory()
-    -- Memberhentikan total data lama agar tidak stuck di angka 116
     table.clear(MyInventory) 
     
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
     
-    -- Menggunakan pairs (Brute Force) untuk membaca seluruh index table
     for i, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
@@ -76,8 +74,7 @@ local function deepScanInventory()
                 })
             end
         end
-        -- Proteksi agar tidak kick saat scan 200+ item
-        if i % 100 == 0 then task.wait() end 
+        if i % 150 == 0 then task.wait() end 
     end
 end
 
@@ -95,25 +92,27 @@ local function getFishDataStrings(mode)
         end
         table.sort(results)
     elseif mode == "Rarity" then
-        -- FIXED: Menghitung akumulasi total per Tier, bukan per jenis
-        local totalPerTier = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0}
+        -- PERBAIKAN TOTAL: Menggunakan accumulator untuk menjumlahkan semua unit ikan
+        local totalUnitsPerTier = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0}
         
-        for _, v in ipairs(MyInventory) do
-            if totalPerTier[v.Tier] ~= nil then
-                totalPerTier[v.Tier] = totalPerTier[v.Tier] + 1
+        for _, fish in ipairs(MyInventory) do
+            if totalUnitsPerTier[fish.Tier] ~= nil then
+                totalUnitsPerTier[fish.Tier] = totalUnitsPerTier[fish.Tier] + 1
             end
         end
 
         for i = 1, 7 do
-            local rName = RarityMap[tostring(i)]
-            local total = totalPerTier[tostring(i)]
-            if total > 0 then
-                table.insert(results, rName .. " (" .. total .. ")")
+            local tierStr = tostring(i)
+            local rName = RarityMap[tierStr]
+            local totalAmount = totalUnitsPerTier[tierStr]
+            
+            if totalAmount > 0 then
+                table.insert(results, rName .. " (" .. totalAmount .. ")")
             end
         end
     end
     
-    return #results > 0 and results or {"Empty / Scroll Backpack First"}
+    return #results > 0 and results or {"No Data - Refresh Again"}
 end
 
 ----------------------------------------------------------------
@@ -166,7 +165,6 @@ RT_Main:AddToggle("RT_Start", { Title = "4. Start Trade", Default = false, Callb
 local AT_Section = Tabs.Accept:AddSection("Automated Receiver")
 AT_Section:AddToggle("AutoAccept", { Title = "AUTO ACCEPT TRADE", Default = false })
 
--- [ SETTINGS ]
 Tabs.Settings:AddButton({ Title = "Force Close GUI", Callback = function() Window:Destroy() end })
 
 Window:SelectTab(1)
