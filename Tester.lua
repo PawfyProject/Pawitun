@@ -1,188 +1,204 @@
 ----------------------------------------------------------------
--- ======= [ CONFIGURATION ] =======
+-- ======= [ CONFIGURATION & CLEANUP ] =======
 ----------------------------------------------------------------
 local SimulationMode = true 
-local DefaultSize = UDim2.fromOffset(450, 420)
+local GuiSize = UDim2.fromOffset(460, 480)
+
+if game.CoreGui:FindFirstChild("Fluent") then
+    game.CoreGui.Fluent:Destroy()
+end
 
 ----------------------------------------------------------------
--- ======= [ LOAD FLUENT UI LIBRARY ] =======
+-- ======= [ LOAD FLUENT UI ] =======
 ----------------------------------------------------------------
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Fisch Trade Tool",
-    SubTitle = "v2.4 - Instant Toggle",
-    TabWidth = 110,
-    Size = DefaultSize,
+    Title = "Fisch Ultimate Trade Control",
+    SubTitle = "v2.0 - Advanced System",
+    TabWidth = 130,
+    Size = GuiSize,
     Acrylic = false, 
     Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.RightControl -- Tetap ada sebagai cadangan
+    MinimizeKey = Enum.KeyCode.RightControl 
 })
 
 ----------------------------------------------------------------
--- ======= [ DATA SCANNER MODULE ] =======
+-- ======= [ GLOBAL VARIABLES & COUNTERS ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local Replion, ItemUtility, DataReplion
-pcall(function()
-    local packages = ReplicatedStorage:WaitForChild("Packages")
-    Replion = require(packages:WaitForChild("Replion"))
-    ItemUtility = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ItemUtility"))
-    DataReplion = Replion.Client:WaitReplion("Data")
-end)
+local Stats = { Success = 0, Failed = 0 }
+local MyInventory = {} -- Menyimpan data scan terbaru
 
-local ReverseRarityMap = {
-    ["COMMON"] = "1", ["UNCOMMON"] = "2", ["RARE"] = "3", 
-    ["EPIC"] = "4", ["LEGENDARY"] = "5", ["MYTHIC"] = "6", ["SECRET"] = "7"
-}
-local state = { SelectedRarity = "SECRET" }
-
-----------------------------------------------------------------
--- ======= [ FLOATING TOGGLE BUTTON + INSTANT SHOW ] =======
-----------------------------------------------------------------
-local ScreenGui = Instance.new("ScreenGui")
-local ToggleButton = Instance.new("ImageButton")
-local UICorner = Instance.new("UICorner")
-
-ScreenGui.Name = "FischToggle_Instant"
-ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.ResetOnSpawn = false
-
-ToggleButton.Name = "ToggleButton"
-ToggleButton.Parent = ScreenGui
-ToggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-ToggleButton.Position = UDim2.new(0.02, 0, 0.4, 0) -- Posisi kiri tengah
-ToggleButton.Size = UDim2.new(0, 45, 0, 45)
-ToggleButton.Image = "rbxassetid://10723343321" 
-ToggleButton.Draggable = true 
-
-UICorner.CornerRadius = UDim.new(0, 12)
-UICorner.Parent = ToggleButton
-
--- PERBAIKAN: Fungsi Toggle Langsung (Tanpa perlu Right Control)
-ToggleButton.MouseButton1Click:Connect(function()
-    if Window and Window.Root then
-        -- Mengatur Visibility secara langsung pada frame utama library
-        Window.Root.Visible = not Window.Root.Visible
-        
-        -- Efek Feedback Klik
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-        task.wait(0.1)
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    end
-end)
-
--- Cleanup saat Unload
-Window:OnUnload(function()
-    if ScreenGui then ScreenGui:Destroy() end
+-- Fungsi Inisialisasi Data Game
+task.spawn(function()
+    pcall(function()
+        local packages = ReplicatedStorage:WaitForChild("Packages", 10)
+        local shared = ReplicatedStorage:WaitForChild("Shared", 10)
+        Replion = require(packages:WaitForChild("Replion"))
+        ItemUtility = require(shared:WaitForChild("ItemUtility"))
+        repeat 
+            DataReplion = Replion.Client:GetReplion("Data")
+            task.wait(1)
+        until DataReplion ~= nil
+    end)
 end)
 
 ----------------------------------------------------------------
--- ======= [ LOGIC FUNCTIONS ] =======
+-- ======= [ SCANNER FUNCTIONS ] =======
 ----------------------------------------------------------------
-local function getRealPlayers()
+
+local function getPlayers()
     local pList = {}
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then table.insert(pList, p.Name) end
     end
-    return #pList > 0 and pList or {"Tidak ada player"}
+    return #pList > 0 and pList or {"No Players Found"}
 end
 
-local function getRarityLabels()
-    local order = {"COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC", "SECRET"}
-    local finalLabels = {}
-    local inventory = (DataReplion and DataReplion:Get("Inventory")) or {}
-    local items = inventory.Items or {}
-    local counts = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0}
+local function scanInventory()
+    MyInventory = {}
+    local data = DataReplion and DataReplion:Get("Inventory")
+    local items = (data and data.Items) or {}
+    
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            local t = tostring(base.Data.Tier)
-            if counts[t] ~= nil then counts[t] = counts[t] + 1 end
+            table.insert(MyInventory, {
+                Name = base.Data.Name,
+                Tier = tostring(base.Data.Tier),
+                UUID = item.UUID
+            })
         end
     end
-    for _, name in ipairs(order) do
-        table.insert(finalLabels, name .. " (" .. counts[ReverseRarityMap[name]] .. ")")
-    end
-    return finalLabels
 end
 
-local function getFishDisplayList(rarityInput)
-    local cleanName = rarityInput:match("([%a]+)")
-    local targetTier = ReverseRarityMap[cleanName] or "7"
-    local inventory = (DataReplion and DataReplion:Get("Inventory")) or {}
-    local items = inventory.Items or {}
-    local grouped = {}
-    for _, item in ipairs(items) do
-        local base = ItemUtility:GetItemData(item.Id)
-        if base and base.Data and base.Data.Type == "Fish" then
-            if tostring(base.Data.Tier) == targetTier then
-                local displayName = base.Data.Name .. " [" .. cleanName .. "]"
-                grouped[displayName] = (grouped[displayName] or 0) + 1
-            end
+-- Menghitung jumlah ikan spesifik atau per tier
+local function getFishDataStrings(mode)
+    scanInventory()
+    local results = {}
+    local counts = {}
+
+    if mode == "Specific" then
+        for _, v in ipairs(MyInventory) do
+            counts[v.Name] = (counts[v.Name] or 0) + 1
+        end
+        for name, count in pairs(counts) do
+            table.insert(results, name .. " (" .. count .. ")")
+        end
+    elseif mode == "Rarity" then
+        for _, v in ipairs(MyInventory) do
+            counts[v.Tier] = (counts[v.Tier] or 0) + 1
+        end
+        for tier, count in pairs(counts) do
+            table.insert(results, "Tier " .. tier .. " (" .. count .. ")")
         end
     end
-    local finalArray = {}
-    for name, qty in pairs(grouped) do table.insert(finalArray, name .. " (x" .. qty .. ")") end
-    table.sort(finalArray)
-    return #finalArray > 0 and finalArray or {"Kosong"}
+    return #results > 0 and results or {"Empty"}
 end
 
 ----------------------------------------------------------------
 -- ======= [ UI TABS ] =======
 ----------------------------------------------------------------
 local Tabs = {
-    Main = Window:AddTab({ Title = "Trade", Icon = "send" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+    Fish = Window:AddTab({ Title = "Fish Trade", Icon = "fish" }),
+    Rarity = Window:AddTab({ Title = "Rarity Trade", Icon = "layers" }),
+    Accept = Window:AddTab({ Title = "Accept Trade", Icon = "check-circle" }),
+    Settings = Window:AddTab({ Title = "Config", Icon = "settings" })
 }
 
-local MainSection = Tabs.Main:AddSection("Trade & Inventory")
-
-local PlayerDropdown = MainSection:AddDropdown("TargetPlayer", {
-    Title = "Select Target Player",
-    Values = getRealPlayers(),
-    Multi = false,
+----------------------------------------------------------------
+-- [ TAB 1: FISH TRADE ]
+----------------------------------------------------------------
+local FT_Status = Tabs.Fish:AddSection("Trade Status")
+local FT_Label = FT_Status:AddParagraph({
+    Title = "Status: Idle",
+    Content = "Success: 0 | Failed: 0"
 })
 
-_G.RarityDropdown = MainSection:AddDropdown("RarityFilter", {
-    Title = "Filter by Rarity",
-    Values = getRarityLabels(),
-    Default = "SECRET (0)",
-    Callback = function(v) 
-        state.SelectedRarity = v 
-        _G.FishDropdown:SetValues(getFishDisplayList(v))
+local FT_Main = Tabs.Fish:AddSection("Configuration")
+local FT_Player = FT_Main:AddDropdown("FT_Player", { Title = "1. Select Player", Values = getPlayers(), Multi = false })
+
+FT_Main:AddButton({ Title = "Refresh Player", Callback = function() FT_Player:SetValues(getPlayers()) end })
+
+local FT_Fish = FT_Main:AddDropdown("FT_Fish", { Title = "2. Select Fish", Values = {"Refresh to Load"}, Multi = false })
+
+FT_Main:AddButton({ 
+    Title = "Refresh Backpack", 
+    Callback = function() 
+        FT_Fish:SetValues(getFishDataStrings("Specific"))
+        Fluent:Notify({Title = "Backpack", Content = "Ikan spesifik diperbarui", Duration = 2})
+    end 
+})
+
+FT_Main:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
+
+FT_Main:AddToggle("FT_Start", {
+    Title = "4. Start Trade",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            FT_Label:SetTitle("Status: RUNNING")
+            -- Simulasi Update Stats
+            Stats.Success = Stats.Success + 1
+            FT_Label:SetText("Success: " .. Stats.Success .. " | Failed: " .. Stats.Failed)
+        else
+            FT_Label:SetTitle("Status: PAUSED")
+        end
     end
 })
 
-_G.FishDropdown = MainSection:AddDropdown("FishInBackpack", {
-    Title = "Fish Found",
-    Values = {"Pilih Rarity dulu"},
-    Multi = false,
+----------------------------------------------------------------
+-- [ TAB 2: RARITY TRADE ]
+----------------------------------------------------------------
+local RT_Status = Tabs.Rarity:AddSection("Trade Status")
+local RT_Label = RT_Status:AddParagraph({
+    Title = "Status: Idle",
+    Content = "Success: 0 | Failed: 0"
 })
 
-MainSection:AddButton({
-    Title = "Refresh All Data",
-    Callback = function()
-        PlayerDropdown:SetValues(getRealPlayers())
-        _G.RarityDropdown:SetValues(getRarityLabels())
-        _G.FishDropdown:SetValues(getFishDisplayList(state.SelectedRarity))
-        Fluent:Notify({Title = "System", Content = "Data updated.", Duration = 2})
+local RT_Main = Tabs.Rarity:AddSection("Configuration")
+local RT_Player = RT_Main:AddDropdown("RT_Player", { Title = "1. Select Player", Values = getPlayers(), Multi = false })
+
+RT_Main:AddButton({ Title = "Refresh Player", Callback = function() RT_Player:SetValues(getPlayers()) end })
+
+local RT_Tier = RT_Main:AddDropdown("RT_Tier", { Title = "2. Select Rarity", Values = {"Refresh to Load"}, Multi = false })
+
+RT_Main:AddButton({ 
+    Title = "Refresh Backpack", 
+    Callback = function() 
+        RT_Tier:SetValues(getFishDataStrings("Rarity"))
+        Fluent:Notify({Title = "Backpack", Content = "Tier ikan diperbarui", Duration = 2})
+    end 
+})
+
+RT_Main:AddInput("RT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
+
+RT_Main:AddToggle("RT_Start", {
+    Title = "4. Start Trade",
+    Default = false,
+    Callback = function(v) RT_Label:SetTitle(v and "Status: RUNNING" or "Status: PAUSED") end
+})
+
+----------------------------------------------------------------
+-- [ TAB 3: ACCEPT TRADE ]
+----------------------------------------------------------------
+local AT_Section = Tabs.Accept:AddSection("Automated Receiver")
+AT_Section:AddToggle("AutoAccept", {
+    Title = "AUTO ACCEPT TRADE",
+    Default = false,
+    Callback = function(v)
+        Fluent:Notify({Title = "System", Content = "Auto Accept: " .. tostring(v), Duration = 2})
     end
 })
 
-Tabs.Settings:AddButton({
-    Title = "Unload Script",
-    Callback = function() Window:Destroy() end
-})
-
--- AUTO-INIT
-task.spawn(function()
-    task.wait(2)
-    _G.RarityDropdown:SetValues(getRarityLabels())
-    PlayerDropdown:SetValues(getRealPlayers())
-end)
+----------------------------------------------------------------
+-- [ SETTINGS & CLEANUP ]
+----------------------------------------------------------------
+Tabs.Settings:AddButton({ Title = "Force Close GUI", Callback = function() Window:Destroy() end })
 
 Window:SelectTab(1)
