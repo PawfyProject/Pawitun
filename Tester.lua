@@ -3,6 +3,7 @@
 ----------------------------------------------------------------
 local SimulationMode = true 
 local GuiSize = UDim2.fromOffset(460, 480)
+local MyLogoID = "rbxassetid://YOUR_ID_HERE" -- GANTI "YOUR_ID_HERE" DENGAN ID LOGO ANDA
 
 if game.CoreGui:FindFirstChild("Fluent") then
     game.CoreGui.Fluent:Destroy()
@@ -14,13 +15,14 @@ end
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Fisch Ultimate Trade Control",
-    SubTitle = "v2.1 - Rarity Mapped",
+    Title = "Pawfy Trade System",
+    SubTitle = "v1.0.0",
     TabWidth = 130,
     Size = GuiSize,
     Acrylic = false, 
     Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.RightControl 
+    MinimizeKey = Enum.KeyCode.RightControl,
+    MinimizeIcon = MyLogoID -- FITUR: Menggunakan Logo Kustom Anda
 })
 
 ----------------------------------------------------------------
@@ -34,7 +36,6 @@ local Replion, ItemUtility, DataReplion
 local Stats = { Success = 0, Failed = 0 }
 local MyInventory = {}
 
--- Tabel Pemetaan Rarity
 local RarityMap = {
     ["1"] = "COMMON",
     ["2"] = "UNCOMMON",
@@ -74,7 +75,6 @@ local function scanInventory()
     MyInventory = {}
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
-    
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
@@ -91,7 +91,6 @@ local function getFishDataStrings(mode)
     scanInventory()
     local results = {}
     local counts = {}
-
     if mode == "Specific" then
         for _, v in ipairs(MyInventory) do
             counts[v.Name] = (counts[v.Name] or 0) + 1
@@ -104,7 +103,6 @@ local function getFishDataStrings(mode)
             local rarityName = RarityMap[v.Tier] or "UNKNOWN"
             counts[rarityName] = (counts[rarityName] or 0) + 1
         end
-        -- Menampilkan berdasarkan urutan RarityMap
         for i=1, 7 do
             local rName = RarityMap[tostring(i)]
             if counts[rName] then
@@ -125,71 +123,33 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Config", Icon = "settings" })
 }
 
-----------------------------------------------------------------
 -- [ TAB 1: FISH TRADE ]
-----------------------------------------------------------------
 local FT_Status = Tabs.Fish:AddSection("Trade Status")
-local FT_Label = FT_Status:AddParagraph({
-    Title = "Status: Idle",
-    Content = "Success: 0 | Failed: 0"
-})
-
+local FT_Label = FT_Status:AddParagraph({ Title = "Status: Idle", Content = "Success: 0 | Failed: 0" })
 local FT_Main = Tabs.Fish:AddSection("Configuration")
 local FT_Player = FT_Main:AddDropdown("FT_Player", { Title = "1. Select Player", Values = getPlayers(), Multi = false })
 FT_Main:AddButton({ Title = "Refresh Player", Callback = function() FT_Player:SetValues(getPlayers()) end })
-
 local FT_Fish = FT_Main:AddDropdown("FT_Fish", { Title = "2. Select Fish", Values = {"Refresh to Load"}, Multi = false })
-FT_Main:AddButton({ 
-    Title = "Refresh Backpack", 
-    Callback = function() FT_Fish:SetValues(getFishDataStrings("Specific")) end 
-})
-
+FT_Main:AddButton({ Title = "Refresh Backpack", Callback = function() FT_Fish:SetValues(getFishDataStrings("Specific")) end })
 FT_Main:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
+FT_Main:AddToggle("FT_Start", { Title = "4. Start Trade", Default = false, Callback = function(v) FT_Label:SetTitle(v and "Status: RUNNING" or "Status: PAUSED") end })
 
-FT_Main:AddToggle("FT_Start", {
-    Title = "4. Start Trade",
-    Default = false,
-    Callback = function(Value)
-        FT_Label:SetTitle(Value and "Status: RUNNING" or "Status: PAUSED")
-    end
-})
-
-----------------------------------------------------------------
 -- [ TAB 2: RARITY TRADE ]
-----------------------------------------------------------------
 local RT_Status = Tabs.Rarity:AddSection("Trade Status")
-local RT_Label = RT_Status:AddParagraph({
-    Title = "Status: Idle",
-    Content = "Success: 0 | Failed: 0"
-})
-
+local RT_Label = RT_Status:AddParagraph({ Title = "Status: Idle", Content = "Success: 0 | Failed: 0" })
 local RT_Main = Tabs.Rarity:AddSection("Configuration")
 local RT_Player = RT_Main:AddDropdown("RT_Player", { Title = "1. Select Player", Values = getPlayers(), Multi = false })
 RT_Main:AddButton({ Title = "Refresh Player", Callback = function() RT_Player:SetValues(getPlayers()) end })
-
 local RT_Tier = RT_Main:AddDropdown("RT_Tier", { Title = "2. Select Rarity", Values = {"Refresh to Load"}, Multi = false })
-RT_Main:AddButton({ 
-    Title = "Refresh Backpack", 
-    Callback = function() RT_Tier:SetValues(getFishDataStrings("Rarity")) end 
-})
-
+RT_Main:AddButton({ Title = "Refresh Backpack", Callback = function() RT_Tier:SetValues(getFishDataStrings("Rarity")) end })
 RT_Main:AddInput("RT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
+RT_Main:AddToggle("RT_Start", { Title = "4. Start Trade", Default = false, Callback = function(v) RT_Label:SetTitle(v and "Status: RUNNING" or "Status: PAUSED") end })
 
-RT_Main:AddToggle("RT_Start", {
-    Title = "4. Start Trade",
-    Default = false,
-    Callback = function(v) RT_Label:SetTitle(v and "Status: RUNNING" or "Status: PAUSED") end
-})
-
-----------------------------------------------------------------
 -- [ TAB 3: ACCEPT TRADE ]
-----------------------------------------------------------------
 local AT_Section = Tabs.Accept:AddSection("Automated Receiver")
 AT_Section:AddToggle("AutoAccept", { Title = "AUTO ACCEPT TRADE", Default = false })
 
-----------------------------------------------------------------
--- [ SETTINGS & CLEANUP ]
-----------------------------------------------------------------
+-- [ SETTINGS ]
 Tabs.Settings:AddButton({ Title = "Force Close GUI", Callback = function() Window:Destroy() end })
 
 Window:SelectTab(1)
