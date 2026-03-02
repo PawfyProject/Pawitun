@@ -11,7 +11,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Fisch Trade Tool",
-    SubTitle = "v1.8 - Auto-Update Fixed",
+    SubTitle = "v1.9 - Restoration Fix",
     TabWidth = 110,
     Size = DefaultSize,
     Acrylic = false, 
@@ -40,59 +40,58 @@ local state = {
 }
 
 ----------------------------------------------------------------
--- ======= [ CORE LOGIC: REFRESH SYSTEM ] =======
+-- ======= [ FIX LOGIC: RESTORE DISPLAY ] =======
 ----------------------------------------------------------------
 
--- Fungsi Menghitung Jumlah Ikan per Tier
-local function getTierValuesWithCount()
+-- 1. Menghitung jumlah per Tier untuk label Dropdown
+local function getTierLabels()
     local tierOptions = {"1", "2", "3", "4", "5", "6", "7", "Secret"}
-    local finalOptions = {}
+    local finalLabels = {}
     
     local inventory = (DataReplion and DataReplion:Get("Inventory")) or {}
     local items = inventory.Items or {}
-    local tierCounts = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0, ["Secret"]=0}
+    local counts = {["1"]=0, ["2"]=0, ["3"]=0, ["4"]=0, ["5"]=0, ["6"]=0, ["7"]=0, ["Secret"]=0}
 
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
             local t = tostring(base.Data.Tier)
-            if tierCounts[t] ~= nil then
-                tierCounts[t] = tierCounts[t] + 1
-            end
+            if counts[t] ~= nil then counts[t] = counts[t] + 1 end
         end
     end
 
     for _, t in ipairs(tierOptions) do
-        table.insert(finalOptions, "T" .. t .. " (" .. tierCounts[t] .. ")")
+        table.insert(finalLabels, "T" .. t .. " (" .. counts[t] .. ")")
     end
-    return finalOptions
+    return finalLabels
 end
 
--- Fungsi Grouping Nama Ikan
-local function getGroupedFishList(tierString)
-    -- Membersihkan string "T7 (10)" menjadi "7"
-    local cleanTier = tierString:match("T(%d+)") or tierString:match("T(%a+)") or tierString
+-- 2. Mengambil daftar ikan dengan format "Nama [Tier] (Quantity)"
+local function getFishDisplayList(tierInput)
+    -- Membersihkan input "T7 (10)" menjadi "7"
+    local cleanTier = tierInput:match("T(%d+)") or tierInput:match("T(%a+)") or tierInput
     
     local inventory = (DataReplion and DataReplion:Get("Inventory")) or {}
     local items = inventory.Items or {}
-    local counts = {}
+    local grouped = {}
     
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
             if tostring(base.Data.Tier) == cleanTier then
-                local name = base.Data.Name
-                counts[name] = (counts[name] or 0) + 1
+                local displayName = base.Data.Name .. " [T" .. base.Data.Tier .. "]"
+                grouped[displayName] = (grouped[displayName] or 0) + 1
             end
         end
     end
     
-    local displayList = {}
-    for name, amount in pairs(counts) do
-        table.insert(displayList, name .. " (x" .. amount .. ")")
+    local finalArray = {}
+    for name, qty in pairs(grouped) do
+        table.insert(finalArray, name .. " (x" .. qty .. ")")
     end
     
-    return #displayList > 0 and displayList or {"Kosong"}
+    table.sort(finalArray)
+    return #finalArray > 0 and finalArray or {"Kosong di Tier ini"}
 end
 
 ----------------------------------------------------------------
@@ -105,56 +104,37 @@ local Tabs = {
 
 local MainSection = Tabs.Main:AddSection("Inventory Monitor")
 
--- Dropdown Player
-local PlayerDropdown = MainSection:AddDropdown("TargetPlayer", {
-    Title = "Select Player",
-    Values = {"Mencari player..."},
-    Multi = false,
-})
-
--- Dropdown Tier dengan Jumlah
+-- Dropdown Tier (Rarity)
 _G.TierDropdown = MainSection:AddDropdown("TierFilter", {
-    Title = "Fish Tiers (Rarity)",
-    Values = getTierValuesWithCount(),
+    Title = "Select Rarity",
+    Values = getTierLabels(),
     Default = "T7 (0)",
     Callback = function(v) 
         state.SelectedTier = v 
-        _G.FishDisplayDropdown:SetValues(getGroupedFishList(v))
+        _G.FishDropdown:SetValues(getFishDisplayList(v))
     end
 })
 
--- Dropdown Daftar Ikan
-_G.FishDisplayDropdown = MainSection:AddDropdown("FishInBackpack", {
-    Title = "Fish Found (Name x Quantity)",
-    Values = {"Pilih Tier dulu"},
+-- Dropdown Ikan (Sekarang akan muncul Nama [T7] (xJumlah))
+_G.FishDropdown = MainSection:AddDropdown("FishInBackpack", {
+    Title = "Fish in Backpack",
+    Values = {"Pilih Tier untuk scan"},
     Multi = false,
 })
 
 MainSection:AddButton({
-    Title = "Manual Refresh",
+    Title = "Refresh Data",
     Callback = function()
-        _G.TierDropdown:SetValues(getTierValuesWithCount())
-        _G.FishDisplayDropdown:SetValues(getGroupedFishList(state.SelectedTier))
-        Fluent:Notify({Title = "Updated", Content = "Data tas diperbarui.", Duration = 2})
+        _G.TierDropdown:SetValues(getTierLabels())
+        _G.FishDropdown:SetValues(getFishDisplayList(state.SelectedTier))
+        Fluent:Notify({Title = "Updated", Content = "Daftar ikan telah diperbarui.", Duration = 2})
     end
 })
 
-----------------------------------------------------------------
--- ======= [ AUTO-INITIALIZE ] =======
-----------------------------------------------------------------
-
--- Fungsi agar saat script di-run, data langsung muncul
+-- Auto-Init saat start
 task.spawn(function()
-    task.wait(1) -- Tunggu modul load
-    local initialTiers = getTierValuesWithCount()
-    _G.TierDropdown:SetValues(initialTiers)
-    
-    -- Ambil daftar player asli
-    local pList = {}
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then table.insert(pList, p.Name) end
-    end
-    PlayerDropdown:SetValues(#pList > 0 and pList or {"Tidak ada player"})
+    task.wait(1.5)
+    _G.TierDropdown:SetValues(getTierLabels())
 end)
 
 Window:SelectTab(1)
