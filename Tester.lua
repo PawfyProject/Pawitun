@@ -2,7 +2,7 @@
 -- ======= [ CONFIGURATION ] =======
 ----------------------------------------------------------------
 local SimulationMode = true 
-local DefaultSize = UDim2.fromOffset(450, 400)
+local DefaultSize = UDim2.fromOffset(450, 420)
 
 ----------------------------------------------------------------
 -- ======= [ LOAD FLUENT UI LIBRARY ] =======
@@ -11,7 +11,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Fisch Trade Tool",
-    SubTitle = "v2.1 - Floating Toggle",
+    SubTitle = "v2.2 - Full Complete Version",
     TabWidth = 110,
     Size = DefaultSize,
     Acrylic = false, 
@@ -51,37 +51,38 @@ local UICorner = Instance.new("UICorner")
 
 ScreenGui.Name = "FischToggleGui"
 ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = ScreenGui
 ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-ToggleButton.Position = UDim2.new(0.05, 0, 0.15, 0) -- Posisi di kiri atas
+ToggleButton.Position = UDim2.new(0.05, 0, 0.2, 0)
 ToggleButton.Size = UDim2.new(0, 50, 0, 50)
-ToggleButton.Image = "rbxassetid://10723343321" -- Logo Ikan/Hook
-ToggleButton.Draggable = true -- Bisa digeser manual di layar
+ToggleButton.Image = "rbxassetid://10723343321" 
+ToggleButton.Draggable = true 
 
 UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = ToggleButton
 
--- Fungsi Klik Tombol untuk Toggle GUI Utama
 ToggleButton.MouseButton1Click:Connect(function()
     if Window then
-        -- Library Fluent menggunakan fungsi internal untuk Minimize
-        local isMinimized = Window.Minimized
-        Window:Minimize(not isMinimized)
-        
-        -- Beri efek visual pada tombol saat diklik
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        task.wait(0.1)
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        Window:Minimize(not Window.Minimized)
     end
 end)
 
 ----------------------------------------------------------------
--- ======= [ CORE LOGIC: RARITY SYSTEM ] =======
+-- ======= [ LOGIC FUNCTIONS ] =======
 ----------------------------------------------------------------
 
+-- 1. Deteksi Player Asli di Server
+local function getRealPlayers()
+    local pList = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then table.insert(pList, p.Name) end
+    end
+    return #pList > 0 and pList or {"Tidak ada player"}
+end
+
+-- 2. Menghitung jumlah per Rarity
 local function getRarityLabels()
     local order = {"COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC", "SECRET"}
     local finalLabels = {}
@@ -104,6 +105,7 @@ local function getRarityLabels()
     return finalLabels
 end
 
+-- 3. Daftar Ikan Ter-grouping
 local function getFishDisplayList(rarityInput)
     local cleanName = rarityInput:match("([%a]+)")
     local targetTier = ReverseRarityMap[cleanName] or "7"
@@ -126,7 +128,7 @@ local function getFishDisplayList(rarityInput)
         table.insert(finalArray, name .. " (x" .. qty .. ")")
     end
     table.sort(finalArray)
-    return #finalArray > 0 and finalArray or {"Kosong di Rarity ini"}
+    return #finalArray > 0 and finalArray or {"Kosong"}
 end
 
 ----------------------------------------------------------------
@@ -137,10 +139,18 @@ local Tabs = {
     Receive = Window:AddTab({ Title = "Accept", Icon = "download" })
 }
 
-local MainSection = Tabs.Main:AddSection("Inventory Monitor")
+local MainSection = Tabs.Main:AddSection("Trade & Inventory")
 
+-- Dropdown Player (KEMBALI DITAMBAHKAN)
+local PlayerDropdown = MainSection:AddDropdown("TargetPlayer", {
+    Title = "Select Target Player",
+    Values = getRealPlayers(),
+    Multi = false,
+})
+
+-- Dropdown Rarity (COMMON - SECRET)
 _G.RarityDropdown = MainSection:AddDropdown("RarityFilter", {
-    Title = "Select Rarity",
+    Title = "Filter by Rarity",
     Values = getRarityLabels(),
     Default = "SECRET (0)",
     Callback = function(v) 
@@ -149,24 +159,36 @@ _G.RarityDropdown = MainSection:AddDropdown("RarityFilter", {
     end
 })
 
+-- Dropdown Ikan Terdeteksi
 _G.FishDropdown = MainSection:AddDropdown("FishInBackpack", {
-    Title = "Fish in Backpack",
-    Values = {"Pilih Rarity untuk scan"},
+    Title = "Fish Found",
+    Values = {"Pilih Rarity dulu"},
     Multi = false,
 })
 
 MainSection:AddButton({
-    Title = "Refresh Data",
+    Title = "Refresh All Data",
+    Description = "Update Player & Inventory",
     Callback = function()
+        PlayerDropdown:SetValues(getRealPlayers())
         _G.RarityDropdown:SetValues(getRarityLabels())
         _G.FishDropdown:SetValues(getFishDisplayList(state.SelectedRarity))
-        Fluent:Notify({Title = "Updated", Content = "Data telah diperbarui.", Duration = 2})
+        Fluent:Notify({Title = "System", Content = "Data berhasil diperbarui.", Duration = 2})
     end
 })
 
+MainSection:AddButton({
+    Title = "Execute Trade (Simulation)",
+    Callback = function()
+        Fluent:Notify({Title = "Simulasi", Content = "Menyiapkan pengiriman...", Duration = 2})
+    end
+})
+
+-- AUTO-INIT
 task.spawn(function()
-    task.wait(1.5)
+    task.wait(2)
     _G.RarityDropdown:SetValues(getRarityLabels())
+    PlayerDropdown:SetValues(getRealPlayers())
 end)
 
 Window:SelectTab(1)
