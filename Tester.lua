@@ -1,26 +1,26 @@
 ----------------------------------------------------------------
 -- ======= [ CONFIGURATION ] =======
 ----------------------------------------------------------------
-local SimulationMode = true -- TETAP TRUE (Hanya simulasi visual)
-local DefaultSize = UDim2.fromOffset(450, 380) 
+local SimulationMode = true 
+local GuiSize = UDim2.fromOffset(400, 320) -- UKURAN MINIMALIS
 
 ----------------------------------------------------------------
--- ======= [ LOAD FLUENT UI LIBRARY ] =======
+-- ======= [ LOAD FLUENT UI ] =======
 ----------------------------------------------------------------
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "Fisch Trade SIMULATOR",
-    SubTitle = "v1.4 - Discovery Mode",
-    TabWidth = 120,
-    Size = DefaultSize,
+    Title = "Fisch Trade SIM v1.5",
+    SubTitle = "Fixed Detection",
+    TabWidth = 100, -- Sidebar lebih ramping
+    Size = GuiSize,
     Acrylic = false, 
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.RightControl
 })
 
 ----------------------------------------------------------------
--- ======= [ DATA SCANNER (REAL DETECTION) ] =======
+-- ======= [ ADVANCED DATA DETECTOR ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -28,46 +28,50 @@ local LocalPlayer = Players.LocalPlayer
 
 local Replion, ItemUtility, DataReplion
 
--- Mendeteksi Modul Data Asli Game
-pcall(function()
-    local packages = ReplicatedStorage:WaitForChild("Packages")
-    Replion = require(packages:WaitForChild("Replion"))
-    ItemUtility = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ItemUtility"))
-    DataReplion = Replion.Client:WaitReplion("Data")
-end)
+-- Fungsi untuk mendapatkan Data Asli Game dengan Proteksi Error
+local function InitGameData()
+    local success, err = pcall(function()
+        -- Mencari Modules & Packages
+        local packages = ReplicatedStorage:WaitForChild("Packages", 15)
+        local shared = ReplicatedStorage:WaitForChild("Shared", 15)
+        
+        if packages and shared then
+            Replion = require(packages:WaitForChild("Replion"))
+            ItemUtility = require(shared:WaitForChild("ItemUtility"))
+            
+            -- Menunggu Data Client Sinkron
+            repeat 
+                DataReplion = Replion.Client:GetReplion("Data")
+                task.wait(1)
+            until DataReplion ~= nil
+        end
+    end)
+    
+    if not success then warn("Data Detection Error: " .. tostring(err)) end
+end
 
-local state = {
-    SelectedTier = "7",
-    TradeQuantity = 0,
-    AutoAccept = false,
-    Category = "Fish"
-}
+task.spawn(InitGameData)
 
 ----------------------------------------------------------------
--- ======= [ REAL-TIME SCANNER FUNCTIONS ] =======
+-- ======= [ SCANNER LOGIC ] =======
 ----------------------------------------------------------------
 
--- 1. Mendeteksi SEMUA Player Asli di Server
+-- Mendeteksi Player (Pasti Terdeteksi)
 local function getRealPlayers()
     local pList = {}
     for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then 
-            table.insert(pList, p.Name) 
-        end
+        if p ~= LocalPlayer then table.insert(pList, p.Name) end
     end
-    if #pList == 0 then return {"Tidak ada player lain"} end
-    return pList
+    return #pList > 0 and pList or {"No Players Found"}
 end
 
--- 2. Mendeteksi SEMUA Ikan Asli di Inventory Anda
-local function scanInventoryForFish(tier)
-    if not DataReplion or not ItemUtility then 
-        return { {name = "Data Not Linked", uuid = "0"} } 
-    end
+-- Mendeteksi Ikan (Pasti Terdeteksi jika DataReplion Siap)
+local function scanInventory(tier)
+    if not DataReplion or not ItemUtility then return {} end
     
     local found = {}
-    local inventory = DataReplion:Get("Inventory")
-    local items = (inventory and inventory.Items) or {}
+    local data = DataReplion:Get("Inventory")
+    local items = (data and data.Items) or {}
     
     for _, item in ipairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
@@ -84,94 +88,73 @@ end
 -- ======= [ UI TABS ] =======
 ----------------------------------------------------------------
 local Tabs = {
-    Main = Window:AddTab({ Title = "Send Trade", Icon = "send" }),
-    Receive = Window:AddTab({ Title = "Accept", Icon = "download" })
+    Main = Window:AddTab({ Title = "Trade", Icon = "send" }),
+    Settings = Window:AddTab({ Title = "Config", Icon = "settings" })
 }
 
-local MainSection = Tabs.Main:AddSection("Discovery & Simulation")
+local TradeSection = Tabs.Main:AddSection("Scanner & Simulator")
 
-MainSection:AddParagraph({
-    Title = "Mode Deteksi Aktif",
-    Content = "Script ini MEMBACA player & ikan asli Anda, tapi TIDAK melakukan trade."
-})
-
--- DROPDOWN: Player (Real Detection)
-local PlayerDropdown = MainSection:AddDropdown("TargetPlayer", {
-    Title = "Select Real Player",
+-- DROPDOWN PLAYER
+local PlayerDropdown = TradeSection:AddDropdown("TargetPlayer", {
+    Title = "Target Player",
     Values = getRealPlayers(),
     Multi = false,
     Default = nil,
 })
 
-MainSection:AddButton({
-    Title = "Refresh Players",
+-- REFRESH BUTTON (Wajib diklik jika player baru masuk)
+TradeSection:AddButton({
+    Title = "Refresh Data",
+    Description = "Update Player & Inventory List",
     Callback = function() 
         PlayerDropdown:SetValues(getRealPlayers()) 
-        Fluent:Notify({Title = "Scanner", Content = "Daftar player diperbarui", Duration = 1})
+        Fluent:Notify({Title = "System", Content = "Data Refreshed!", Duration = 1})
     end
 })
 
--- DROPDOWN: Tier Filter
-local TierDropdown = MainSection:AddDropdown("TierFilter", {
-    Title = "Select Fish Tier to Scan",
+-- DROPDOWN TIER
+local TierDropdown = TradeSection:AddDropdown("TierFilter", {
+    Title = "Select Tier to Scan",
     Values = {"1", "2", "3", "4", "5", "6", "7", "Secret"},
     Default = "7",
     Callback = function(v) state.SelectedTier = v end
 })
 
--- BUTTON: Cek Inventory (Test Detection)
-MainSection:AddButton({
-    Title = "Scan My Inventory (Tier " .. state.SelectedTier .. ")",
-    Description = "Mengetes apakah script bisa melihat ikan Anda",
+-- SCAN BUTTON
+TradeSection:AddButton({
+    Title = "Scan My Fish",
     Callback = function()
-        local myFish = scanInventoryForFish(state.SelectedTier)
-        if #myFish > 0 then
-            Fluent:Notify({
-                Title = "Scanner Berhasil",
-                Content = "Ditemukan " .. #myFish .. " ikan Tier " .. state.SelectedTier .. " di tas Anda.",
-                Duration = 4
-            })
+        local fish = scanInventory(state.SelectedTier or "7")
+        if #fish > 0 then
+            Fluent:Notify({Title = "Success", Content = "Ditemukan " .. #fish .. " Ikan Tier " .. (state.SelectedTier or "7"), Duration = 3})
         else
-            Fluent:Notify({
-                Title = "Scanner Kosong",
-                Content = "Tidak ada ikan Tier " .. state.SelectedTier .. " di inventory.",
-                Duration = 3
-            })
+            Fluent:Notify({Title = "Empty", Content = "Ikan tidak ditemukan di tas.", Duration = 3})
         end
     end
 })
 
--- BUTTON: Simulasi Eksekusi
-MainSection:AddButton({
-    Title = "Simulate Trade Execution",
-    Description = "Tes alur tanpa mengirim data ke server",
+-- SIMULATE BUTTON
+TradeSection:AddButton({
+    Title = "Simulate Trade",
     Callback = function()
         local target = PlayerDropdown.Value
-        if not target or target == "Tidak ada player lain" then 
-            return Fluent:Notify({Title = "Error", Content = "Pilih player asli!"}) 
+        local fishList = scanInventory(state.SelectedTier or "7")
+        
+        if not target or target == "No Players Found" then 
+            return Fluent:Notify({Title = "Error", Content = "Pilih Player dulu!"}) 
         end
-
-        local myFish = scanInventoryForFish(state.SelectedTier)
-        if #myFish == 0 then
-            return Fluent:Notify({Title = "Aborted", Content = "Ikan tidak ditemukan, simulasi berhenti."})
+        
+        if #fishList == 0 then
+            return Fluent:Notify({Title = "Error", Content = "Tidak ada ikan untuk ditrade."})
         end
 
         Fluent:Notify({
-            Title = "SIMULASI BERJALAN",
-            Content = "Mencoba mengirim " .. myFish[1].name .. " ke " .. target,
-            Duration = 5
+            Title = "Simulation Running",
+            Content = "Mengirim " .. fishList[1].name .. " ke " .. target,
+            Duration = 4
         })
-        print("DEBUG: Simulasi berhasil. Ikan terdeteksi: " .. myFish[1].name .. " (" .. myFish[1].uuid .. ")")
     end
 })
 
--- [[ RECEIVE TAB ]] --
-local RecSection = Tabs.Receive:AddSection("Receiver Simulation")
-RecSection:AddToggle("AutoAccept", {
-    Title = "Auto Accept (Visual Only)",
-    Default = false,
-    Callback = function(v) state.AutoAccept = v end
-})
-
 Window:SelectTab(1)
-Fluent:Notify({Title = "Safe Mode v1.4", Content = "Deteksi Player & Inventory Aktif. Resize pojok kanan bawah.", Duration = 5})
+Fluent:Notify({Title = "Ready", Content = "GUI v1.5 Minimalist Loaded", Duration = 3})
