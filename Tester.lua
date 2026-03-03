@@ -7,9 +7,20 @@ local LocalPlayer = Players.LocalPlayer
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
+-- [WARNA TIER] - Format: Color3.fromRGB(R, G, B)
+local TierColors = {
+    ["1"] = Color3.fromRGB(170, 170, 170), -- Common (Abu-abu)
+    ["2"] = Color3.fromRGB(85, 255, 127),  -- Uncommon (Hijau)
+    ["3"] = Color3.fromRGB(0, 170, 255),  -- Rare (Biru)
+    ["4"] = Color3.fromRGB(170, 0, 255),  -- Epic (Ungu)
+    ["5"] = Color3.fromRGB(255, 170, 0),  -- Legendary (Oranye)
+    ["6"] = Color3.fromRGB(255, 0, 127),  -- Mythic (Pink/Hot Red)
+    ["7"] = Color3.fromRGB(0, 255, 255)   -- SECRET (Cyan/Aqua)
+}
+
 local Window = Fluent:CreateWindow({
-    Title = "PAWFY TRADE SYSTEM",
-    SubTitle = "v1.0.0",
+    Title = "FISCH ULTIMATE CONTROL",
+    SubTitle = "v5.1 - Color Tier Edition",
     TabWidth = 140,
     Size = UDim2.fromOffset(480, 480),
     Acrylic = false, 
@@ -18,17 +29,15 @@ local Window = Fluent:CreateWindow({
 })
 
 ----------------------------------------------------------------
--- ======= [ CORE DATA SERVICES ] =======
+-- ======= [ DATA SERVICES ] =======
 ----------------------------------------------------------------
 local Replion, ItemUtility, DataReplion
 local MyInventory = {}
-local UnfavoriteOnly = false 
 
 task.spawn(function()
     pcall(function()
-        local packages = ReplicatedStorage:WaitForChild("Packages", 30)
         local shared = ReplicatedStorage:WaitForChild("Shared", 30)
-        Replion = require(packages:WaitForChild("Replion"))
+        Replion = require(ReplicatedStorage.Packages.Replion)
         ItemUtility = require(shared:WaitForChild("ItemUtility"))
         repeat 
             DataReplion = Replion.Client:GetReplion("Data")
@@ -38,44 +47,22 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- ======= [ THE "IMPOSSIBLE TO FAIL" FILTER ] =======
+-- ======= [ CORE LOGIC ] =======
 ----------------------------------------------------------------
 
-local function scanAndSync()
+local function scanBackpack()
     table.clear(MyInventory)
-    
     local data = DataReplion and DataReplion:Get("Inventory")
-    local favData = DataReplion and DataReplion:Get("Favorites") -- MENGAMBIL TABEL FAVORIT TERPISAH
     local items = (data and data.Items) or {}
-    
-    -- Buat Map UUID Favorit untuk pengecekan super cepat & akurat
-    local favoriteMap = {}
-    if favData and type(favData) == "table" then
-        for _, favUUID in pairs(favData) do
-            favoriteMap[favUUID] = true
-        end
-    end
     
     for _, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            
-            -- CEK APAKAH UUID IKAN INI ADA DI DAFTAR FAVORIT GAME
-            local isFav = favoriteMap[item.UUID] or false
-            
-            -- Jika Unfavorite Only AKTIF dan ikan ini FAVORIT, maka jangan masukkan (SKIP)
-            local shouldEntry = true
-            if UnfavoriteOnly == true and isFav == true then
-                shouldEntry = false
-            end
-            
-            if shouldEntry then
-                table.insert(MyInventory, {
-                    Name = base.Data.Name,
-                    UUID = item.UUID,
-                    IsFav = isFav
-                })
-            end
+            table.insert(MyInventory, {
+                Name = base.Data.Name,
+                Tier = tostring(base.Data.Tier or "1"),
+                UUID = item.UUID
+            })
         end
     end
 end
@@ -90,62 +77,51 @@ local Tabs = {
 
 local FT_Sec = Tabs.Fish:AddSection("Trade Controller")
 
--- Toggle Filter
-FT_Sec:AddToggle("FT_Fav", { 
-    Title = "Unfavorite Only (Hide Starred)", 
-    Default = false, 
-    Callback = function(v) 
-        UnfavoriteOnly = v 
-        Fluent:Notify({Title = "Filter Changed", Content = "Filter is now: " .. (v and "ON" or "OFF"), Duration = 2})
-    end 
-})
+-- Player List
+local FT_Player = FT_Sec:AddDropdown("FT_P", { Title = "1. Target Player", Values = {}, Multi = false })
+FT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
+    local p = {}
+    for _, v in pairs(Players:GetPlayers()) do if v ~= LocalPlayer then table.insert(p, v.Name) end end
+    FT_Player:SetValues(#p > 0 and p or {"No Players"})
+end })
 
 -- Dropdown Ikan
-local FT_Drop = FT_Sec:AddDropdown("FT_Item", { 
-    Title = "Select Fish", 
-    Values = {"Sync to start"}, 
-    Multi = false 
-})
+local FT_Drop = FT_Sec:AddDropdown("FT_Item", { Title = "2. Select Fish", Values = {"Sync Required"}, Multi = false })
 
 FT_Sec:AddButton({ 
     Title = "Sync Backpack", 
     Callback = function()
-        FT_Drop:SetValues({"Loading..."})
-        task.wait(0.2)
-        
-        scanAndSync()
+        scanBackpack()
         
         local display = {}
         local countMap = {}
         for _, v in ipairs(MyInventory) do
             countMap[v.Name] = (countMap[v.Name] or 0) + 1
         end
+        
         for name, qty in pairs(countMap) do
             table.insert(display, name .. " (" .. qty .. ")")
         end
         table.sort(display)
         
-        FT_Drop:SetValues(#display > 0 and display or {"NO FISH FOUND"})
+        FT_Drop:SetValues(#display > 0 and display or {"EMPTY BACKPACK"})
         
         Fluent:Notify({
             Title = "Sync Success", 
-            Content = "Showing " .. #MyInventory .. " non-favorite fishes.", 
+            Content = "Loaded " .. #MyInventory .. " fishes from your bag.", 
             Duration = 3
         })
     end 
 })
 
-FT_Sec:AddInput("FT_Qty", { Title = "Quantity", Default = "1", Numeric = true })
+FT_Sec:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
 FT_Sec:AddToggle("FT_Go", { Title = "START AUTO TRADE", Default = false })
 
--- Debugging
-Tabs.Settings:AddButton({ Title = "Check Favorites Table (F9)", Callback = function()
-    local favData = DataReplion:Get("Favorites")
-    print("--- RAW FAVORITES DATA ---")
-    if favData then
-        for i, uuid in pairs(favData) do print(i, uuid) end
-    else
-        print("Favorites table not found!")
+-- Diagnostics Console
+Tabs.Settings:AddButton({ Title = "Print Tier Colors to Console", Callback = function()
+    print("--- TIER COLOR LIST ---")
+    for tier, color in pairs(TierColors) do
+        print("Tier " .. tier .. ": " .. tostring(color))
     end
 end })
 
