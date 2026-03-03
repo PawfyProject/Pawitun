@@ -1,191 +1,152 @@
 ----------------------------------------------------------------
--- [ 1. CONFIG & RESPONSIVE SETTINGS ]
+-- ======= [ CONFIGURATION & PRE-LOADING ] =======
 ----------------------------------------------------------------
-local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local MyLogoID = "rbxassetid://15243144665" -- Logo default jika URL gagal
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
--- Color Mapping Kasta Ikan
-local RarityMap = {
-    ["1"] = {Name = "COMMON", Color = Color3.fromRGB(255, 255, 255), Text = Color3.new(0,0,0)},
-    ["2"] = {Name = "UNCOMMON", Color = Color3.fromRGB(126, 255, 28), Text = Color3.new(0,0,0)},
-    ["3"] = {Name = "RARE", Color = Color3.fromRGB(0, 162, 255), Text = Color3.new(1,1,1)},
-    ["4"] = {Name = "EPIC", Color = Color3.fromRGB(170, 0, 255), Text = Color3.new(1,1,1)},
-    ["5"] = {Name = "LEGENDARY", Color = Color3.fromRGB(254, 203, 0), Text = Color3.new(0,0,0)},
-    ["6"] = {Name = "MYTHIC", Color = Color3.fromRGB(255, 0, 85), Text = Color3.new(1,1,1)},
-    ["7"] = {Name = "SECRET", Color = Color3.fromRGB(0, 255, 170), Text = Color3.new(0,0,0)}
+local Window = Fluent:CreateWindow({
+    Title = "PAWFY TRADE SYSTEM",
+    SubTitle = "v1.0.0",
+    TabWidth = 140,
+    Size = UDim2.fromOffset(480, 480),
+    Acrylic = false, 
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.RightControl
+})
+
+----------------------------------------------------------------
+-- ======= [ CORE DATA SERVICES ] =======
+----------------------------------------------------------------
+local Replion, ItemUtility, DataReplion
+local MyInventory = {}
+local UnfavoriteOnly = false 
+
+task.spawn(function()
+    pcall(function()
+        local packages = ReplicatedStorage:WaitForChild("Packages", 30)
+        local shared = ReplicatedStorage:WaitForChild("Shared", 30)
+        Replion = require(packages:WaitForChild("Replion"))
+        ItemUtility = require(shared:WaitForChild("ItemUtility"))
+        repeat 
+            DataReplion = Replion.Client:GetReplion("Data")
+            task.wait(1)
+        until DataReplion ~= nil
+    end)
+end)
+
+----------------------------------------------------------------
+-- ======= [ THE "IMPOSSIBLE TO FAIL" FILTER ] =======
+----------------------------------------------------------------
+
+local function scanAndSync()
+    table.clear(MyInventory)
+    
+    local data = DataReplion and DataReplion:Get("Inventory")
+    local favData = DataReplion and DataReplion:Get("Favorites") -- MENGAMBIL TABEL FAVORIT TERPISAH
+    local items = (data and data.Items) or {}
+    
+    -- Buat Map UUID Favorit untuk pengecekan super cepat & akurat
+    local favoriteMap = {}
+    if favData and type(favData) == "table" then
+        for _, favUUID in pairs(favData) do
+            favoriteMap[favUUID] = true
+        end
+    end
+    
+    for _, item in pairs(items) do
+        local base = ItemUtility:GetItemData(item.Id)
+        if base and base.Data and base.Data.Type == "Fish" then
+            
+            -- CEK APAKAH UUID IKAN INI ADA DI DAFTAR FAVORIT GAME
+            local isFav = favoriteMap[item.UUID] or false
+            
+            -- Jika Unfavorite Only AKTIF dan ikan ini FAVORIT, maka jangan masukkan (SKIP)
+            local shouldEntry = true
+            if UnfavoriteOnly == true and isFav == true then
+                shouldEntry = false
+            end
+            
+            if shouldEntry then
+                table.insert(MyInventory, {
+                    Name = base.Data.Name,
+                    UUID = item.UUID,
+                    IsFav = isFav
+                })
+            end
+        end
+    end
+end
+
+----------------------------------------------------------------
+-- ======= [ UI TABS ] =======
+----------------------------------------------------------------
+local Tabs = {
+    Fish = Window:AddTab({ Title = "Fish Trade", Icon = "fish" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
-----------------------------------------------------------------
--- [ 2. UI CONSTRUCTION (COMPACT & RESPONSIVE) ]
-----------------------------------------------------------------
-local GUI = Instance.new("ScreenGui", game.CoreGui)
-GUI.Name = "PawfyCompact_v4_4"
+local FT_Sec = Tabs.Fish:AddSection("Trade Controller")
 
--- Main Window (Menggunakan Scale agar tidak terlalu besar)
-local Main = Instance.new("Frame", GUI)
-Main.Size = UDim2.new(0.35, 0, 0.55, 0) -- 35% lebar layar, 55% tinggi
-Main.Position = UDim2.new(0.32, 0, 0.2, 0)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Main.BackgroundTransparency = 0.3 -- 70% Transparansi
-Main.Active = true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
-local Stroke = Instance.new("UIStroke", Main)
-Stroke.Color = Color3.fromRGB(17, 217, 157)
-Stroke.Thickness = 1.2
+-- Toggle Filter
+FT_Sec:AddToggle("FT_Fav", { 
+    Title = "Unfavorite Only (Hide Starred)", 
+    Default = false, 
+    Callback = function(v) 
+        UnfavoriteOnly = v 
+        Fluent:Notify({Title = "Filter Changed", Content = "Filter is now: " .. (v and "ON" or "OFF"), Duration = 2})
+    end 
+})
 
--- Minimize Logo (P)
-local PLogo = Instance.new("TextButton", GUI)
-PLogo.Size = UDim2.new(0, 45, 0, 45)
-PLogo.Position = UDim2.new(0, 20, 0.5, -22)
-PLogo.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-PLogo.BackgroundTransparency = 0.3
-PLogo.Text = "P"
-PLogo.TextColor3 = Color3.fromRGB(17, 217, 157)
-PLogo.Font = Enum.Font.GothamBold
-PLogo.TextSize = 22
-PLogo.Visible = false
-Instance.new("UICorner", PLogo).CornerRadius = UDim.new(1, 0)
+-- Dropdown Ikan
+local FT_Drop = FT_Sec:AddDropdown("FT_Item", { 
+    Title = "Select Fish", 
+    Values = {"Sync to start"}, 
+    Multi = false 
+})
 
--- Header ringkas dengan tombol Close/Minimize
-local Header = Instance.new("Frame", Main)
-Header.Size = UDim2.new(1, 0, 0.1, 0)
-Header.BackgroundTransparency = 1
+FT_Sec:AddButton({ 
+    Title = "Sync Backpack", 
+    Callback = function()
+        FT_Drop:SetValues({"Loading..."})
+        task.wait(0.2)
+        
+        scanAndSync()
+        
+        local display = {}
+        local countMap = {}
+        for _, v in ipairs(MyInventory) do
+            countMap[v.Name] = (countMap[v.Name] or 0) + 1
+        end
+        for name, qty in pairs(countMap) do
+            table.insert(display, name .. " (" .. qty .. ")")
+        end
+        table.sort(display)
+        
+        FT_Drop:SetValues(#display > 0 and display or {"NO FISH FOUND"})
+        
+        Fluent:Notify({
+            Title = "Sync Success", 
+            Content = "Showing " .. #MyInventory .. " non-favorite fishes.", 
+            Duration = 3
+        })
+    end 
+})
 
-local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(0.8, 0, 1, 0)
-Title.Position = UDim2.new(0.05, 0, 0, 0)
-Title.Text = "🐾 PAWFY ULTIMATE v4.4"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 13
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.BackgroundTransparency = 1
+FT_Sec:AddInput("FT_Qty", { Title = "Quantity", Default = "1", Numeric = true })
+FT_Sec:AddToggle("FT_Go", { Title = "START AUTO TRADE", Default = false })
 
-local MinBtn = Instance.new("TextButton", Header)
-MinBtn.Size = UDim2.new(0.1, 0, 0.8, 0)
-MinBtn.Position = UDim2.new(0.88, 0, 0.1, 0)
-MinBtn.Text = "X"
-MinBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-MinBtn.BackgroundTransparency = 1
-MinBtn.Font = Enum.Font.GothamBold
+-- Debugging
+Tabs.Settings:AddButton({ Title = "Check Favorites Table (F9)", Callback = function()
+    local favData = DataReplion:Get("Favorites")
+    print("--- RAW FAVORITES DATA ---")
+    if favData then
+        for i, uuid in pairs(favData) do print(i, uuid) end
+    else
+        print("Favorites table not found!")
+    end
+end })
 
--- Sidebar (Left) - Responsive
-local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0.28, 0, 0.88, 0)
-Sidebar.Position = UDim2.new(0, 0, 0.1, 0)
-Sidebar.BackgroundTransparency = 1
-local SideLayout = Instance.new("UIListLayout", Sidebar)
-SideLayout.Padding = UDim.new(0, 4)
-SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- Content Area (Right)
-local Container = Instance.new("Frame", Main)
-Container.Size = UDim2.new(0.68, 0, 0.85, 0)
-Container.Position = UDim2.new(0.3, 0, 0.12, 0)
-Container.BackgroundTransparency = 1
-
-----------------------------------------------------------------
--- [ 3. TAB & CONTENT SYSTEM ]
-----------------------------------------------------------------
-local CurrentPage = nil
-
-local function CreateTab(name, icon)
-    local Btn = Instance.new("TextButton", Sidebar)
-    Btn.Size = UDim2.new(0.9, 0, 0, 32)
-    Btn.BackgroundTransparency = 0.9
-    Btn.Text = name
-    Btn.TextColor3 = Color3.fromRGB(180, 180, 180)
-    Btn.Font = Enum.Font.GothamMedium
-    Btn.TextSize = 10
-    Instance.new("UICorner", Btn)
-    
-    local Page = Instance.new("ScrollingFrame", Container)
-    Page.Size = UDim2.new(1, 0, 1, 0)
-    Page.BackgroundTransparency = 1
-    Page.Visible = false
-    Page.ScrollBarThickness = 1
-    Instance.new("UIListLayout", Page).Padding = UDim.new(0, 8)
-    
-    Btn.MouseButton1Click:Connect(function()
-        if CurrentPage then CurrentPage.Visible = false end
-        Page.Visible = true
-        CurrentPage = Page
-    end)
-    return Page
-end
-
--- PAGE: FISH TRADE
-local FishPage = CreateTab("FISH", "🐟")
-FishPage.Visible = true
-CurrentPage = FishPage
-
-local function AddInput(placeholder, parent)
-    local I = Instance.new("TextBox", parent)
-    I.Size = UDim2.new(1, -10, 0, 30)
-    I.PlaceholderText = placeholder
-    I.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    I.TextColor3 = Color3.white
-    I.TextSize = 11
-    Instance.new("UICorner", I)
-    return I
-end
-
-local TargetPlayer = AddInput("Target Player...", FishPage)
-
--- Berwarna List Ikan (Kompak)
-local FishScroll = Instance.new("ScrollingFrame", FishPage)
-FishScroll.Size = UDim2.new(1, -10, 0, 120)
-FishScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-FishScroll.BorderSizePixel = 0
-Instance.new("UIListLayout", FishScroll).Padding = UDim.new(0, 2)
-Instance.new("UICorner", FishScroll)
-
--- Simulasi Tombol Ikan Berwarna
-local function AddFishItem(name, tier)
-    local cfg = RarityMap[tostring(tier)]
-    local b = Instance.new("TextButton", FishScroll)
-    b.Size = UDim2.new(1, 0, 0, 24)
-    b.BackgroundColor3 = cfg.Color
-    b.Text = " " .. name
-    b.TextColor3 = cfg.Text
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 10
-    b.TextXAlignment = Enum.TextXAlignment.Left
-    Instance.new("UICorner", b)
-end
-
--- Tombol Aksi
-local StartBtn = Instance.new("TextButton", FishPage)
-StartBtn.Size = UDim2.new(1, -10, 0, 35)
-StartBtn.Text = "START TRADE (OFF)"
-StartBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-StartBtn.TextColor3 = Color3.white
-StartBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", StartBtn)
-
-----------------------------------------------------------------
--- [ 4. DRAG, MINIMIZE & INTERACTION ]
-----------------------------------------------------------------
--- Draggable (Seluruh Window bisa digeser)
-local dragging, dragStart, startPos
-Main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true dragStart = i.Position startPos = Main.Position end end)
-UserInputService.InputChanged:Connect(function(i) if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-    local d = i.Position - dragStart
-    Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
-end end)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
-
--- Minimize Logic
-MinBtn.MouseButton1Click:Connect(function() Main.Visible = false PLogo.Visible = true end)
-PLogo.MouseButton1Click:Connect(function() Main.Visible = true PLogo.Visible = false end)
-
--- Contoh data agar terlihat di Studio
-AddFishItem("Abyssal Shark", 7)
-AddFishItem("Kraken", 6)
-AddFishItem("Mackerel", 1)
-
-print("🐾 Pawfy v4.4 Loaded! Gunakan 'X' untuk minimize.")
+Window:SelectTab(1)
