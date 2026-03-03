@@ -1,14 +1,13 @@
 ----------------------------------------------------------------
--- ======= [ CONFIGURATION & PRE-LOADING ] =======
+-- ======= [ CORE SERVICES & CONFIG ] =======
 ----------------------------------------------------------------
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
 
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-
--- [WARNA TIER] - Format: Color3.fromRGB(R, G, B)
-local TierColors = {
+-- Definisi Warna RGB Sesuai Permintaan Anda
+local TierSettings = {
     ["1"] = Color3.fromRGB(170, 170, 170), -- Common (Abu-abu)
     ["2"] = Color3.fromRGB(85, 255, 127),  -- Uncommon (Hijau)
     ["3"] = Color3.fromRGB(0, 170, 255),  -- Rare (Biru)
@@ -18,111 +17,122 @@ local TierColors = {
     ["7"] = Color3.fromRGB(0, 255, 255)   -- SECRET (Cyan/Aqua)
 }
 
-local Window = Fluent:CreateWindow({
-    Title = "FISCH ULTIMATE CONTROL",
-    SubTitle = "v5.1 - Color Tier Edition",
-    TabWidth = 140,
-    Size = UDim2.fromOffset(480, 480),
-    Acrylic = false, 
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.RightControl
-})
+local LynxLib = {}
+function LynxLib:CreateWindow(title)
+    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+    local MainFrame = Instance.new("Frame", ScreenGui)
+    MainFrame.Size = UDim2.new(0, 400, 0, 500)
+    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    MainFrame.BorderSizePixel = 0
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+    local TitleLabel = Instance.new("TextLabel", MainFrame)
+    TitleLabel.Size = UDim2.new(1, 0, 0, 40)
+    TitleLabel.Text = "  " .. title
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.TextSize = 16
+
+    local ScrollFrame = Instance.new("ScrollingFrame", MainFrame)
+    ScrollFrame.Size = UDim2.new(1, -20, 1, -120)
+    ScrollFrame.Position = UDim2.new(0, 10, 0, 50)
+    ScrollFrame.BackgroundTransparency = 1
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    ScrollFrame.ScrollBarThickness = 2
+    local Layout = Instance.new("UIListLayout", ScrollFrame)
+    Layout.Padding = UDim.new(0, 5)
+
+    -- Fungsi Tambah Item dengan Warna Custom
+    function LynxLib:AddItem(name, tier)
+        local cfg = TierSettings[tostring(tier)] or TierSettings["1"]
+        
+        local ItemFrame = Instance.new("Frame", ScrollFrame)
+        ItemFrame.Size = UDim2.new(1, -5, 0, 30)
+        ItemFrame.BackgroundColor3 = cfg.BG
+        ItemFrame.BorderSizePixel = 0
+        Instance.new("UICorner", ItemFrame).CornerRadius = UDim.new(0, 4)
+
+        local NameLabel = Instance.new("TextLabel", ItemFrame)
+        NameLabel.Size = UDim2.new(1, -10, 1, 0)
+        NameLabel.Position = UDim2.new(0, 10, 0, 0)
+        NameLabel.BackgroundTransparency = 1
+        NameLabel.Text = "[" .. cfg.Name .. "] " .. name
+        NameLabel.TextColor3 = cfg.TXT
+        NameLabel.Font = Enum.Font.GothamBold
+        NameLabel.TextSize = 12
+        NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 35)
+    end
+
+    function LynxLib:ClearItems()
+        for _, v in pairs(ScrollFrame:GetChildren()) do
+            if v:IsA("Frame") then v:Destroy() end
+        end
+    end
+
+    -- Control Section (Sync Button)
+    local ControlFrame = Instance.new("Frame", MainFrame)
+    ControlFrame.Size = UDim2.new(1, 0, 0, 60)
+    ControlFrame.Position = UDim2.new(0, 0, 1, -60)
+    ControlFrame.BackgroundTransparency = 1
+
+    local SyncBtn = Instance.new("TextButton", ControlFrame)
+    SyncBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    SyncBtn.Position = UDim2.new(0.05, 0, 0.2, 0)
+    SyncBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    SyncBtn.Text = "SYNC BACKPACK & COLORS"
+    SyncBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SyncBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", SyncBtn)
+
+    return SyncBtn
+end
 
 ----------------------------------------------------------------
--- ======= [ DATA SERVICES ] =======
+-- ======= [ DATA LOGIC ] =======
 ----------------------------------------------------------------
 local Replion, ItemUtility, DataReplion
-local MyInventory = {}
-
 task.spawn(function()
-    pcall(function()
-        local shared = ReplicatedStorage:WaitForChild("Shared", 30)
-        Replion = require(ReplicatedStorage.Packages.Replion)
-        ItemUtility = require(shared:WaitForChild("ItemUtility"))
-        repeat 
-            DataReplion = Replion.Client:GetReplion("Data")
-            task.wait(1)
-        until DataReplion ~= nil
-    end)
+    local shared = ReplicatedStorage:WaitForChild("Shared", 30)
+    Replion = require(ReplicatedStorage.Packages.Replion)
+    ItemUtility = require(shared:WaitForChild("ItemUtility"))
+    repeat 
+        DataReplion = Replion.Client:GetReplion("Data")
+        task.wait(1)
+    until DataReplion ~= nil
 end)
 
-----------------------------------------------------------------
--- ======= [ CORE LOGIC ] =======
-----------------------------------------------------------------
-
-local function scanBackpack()
-    table.clear(MyInventory)
+local function RefreshList()
+    LynxLib:ClearItems()
     local data = DataReplion and DataReplion:Get("Inventory")
     local items = (data and data.Items) or {}
     
+    -- Hitung Qty agar tidak terlalu panjang
+    local counts = {}
+    local tierMap = {}
     for _, item in pairs(items) do
         local base = ItemUtility:GetItemData(item.Id)
         if base and base.Data and base.Data.Type == "Fish" then
-            table.insert(MyInventory, {
-                Name = base.Data.Name,
-                Tier = tostring(base.Data.Tier or "1"),
-                UUID = item.UUID
-            })
+            local n = base.Data.Name
+            counts[n] = (counts[n] or 0) + 1
+            tierMap[n] = tostring(base.Data.Tier or "1")
         end
+    end
+
+    -- Tampilkan ke UI dengan Warna
+    for name, qty in pairs(counts) do
+        LynxLib:AddItem(name .. " (x" .. qty .. ")", tierMap[name])
     end
 end
 
 ----------------------------------------------------------------
--- ======= [ UI TABS ] =======
+-- ======= [ MAIN RUN ] =======
 ----------------------------------------------------------------
-local Tabs = {
-    Fish = Window:AddTab({ Title = "Fish Trade", Icon = "fish" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
-}
-
-local FT_Sec = Tabs.Fish:AddSection("Trade Controller")
-
--- Player List
-local FT_Player = FT_Sec:AddDropdown("FT_P", { Title = "1. Target Player", Values = {}, Multi = false })
-FT_Sec:AddButton({ Title = "Refresh Player List", Callback = function()
-    local p = {}
-    for _, v in pairs(Players:GetPlayers()) do if v ~= LocalPlayer then table.insert(p, v.Name) end end
-    FT_Player:SetValues(#p > 0 and p or {"No Players"})
-end })
-
--- Dropdown Ikan
-local FT_Drop = FT_Sec:AddDropdown("FT_Item", { Title = "2. Select Fish", Values = {"Sync Required"}, Multi = false })
-
-FT_Sec:AddButton({ 
-    Title = "Sync Backpack", 
-    Callback = function()
-        scanBackpack()
-        
-        local display = {}
-        local countMap = {}
-        for _, v in ipairs(MyInventory) do
-            countMap[v.Name] = (countMap[v.Name] or 0) + 1
-        end
-        
-        for name, qty in pairs(countMap) do
-            table.insert(display, name .. " (" .. qty .. ")")
-        end
-        table.sort(display)
-        
-        FT_Drop:SetValues(#display > 0 and display or {"EMPTY BACKPACK"})
-        
-        Fluent:Notify({
-            Title = "Sync Success", 
-            Content = "Loaded " .. #MyInventory .. " fishes from your bag.", 
-            Duration = 3
-        })
-    end 
-})
-
-FT_Sec:AddInput("FT_Qty", { Title = "3. Quantity", Default = "1", Numeric = true })
-FT_Sec:AddToggle("FT_Go", { Title = "START AUTO TRADE", Default = false })
-
--- Diagnostics Console
-Tabs.Settings:AddButton({ Title = "Print Tier Colors to Console", Callback = function()
-    print("--- TIER COLOR LIST ---")
-    for tier, color in pairs(TierColors) do
-        print("Tier " .. tier .. ": " .. tostring(color))
-    end
-end })
-
-Window:SelectTab(1)
+local SyncButton = LynxLib:CreateWindow("FISCH COLOR LIST - LYNX LIGHT")
+SyncButton.MouseButton1Click:Connect(function()
+    RefreshList()
+end)
