@@ -8,15 +8,18 @@ local HttpService = game:GetService("HttpService")
 
 -- Definisi Warna RGB Sesuai Permintaan Anda
 local TierSettings = {
-    ["1"] = Color3.fromRGB(170, 170, 170), -- Common (Abu-abu)
-    ["2"] = Color3.fromRGB(85, 255, 127),  -- Uncommon (Hijau)
-    ["3"] = Color3.fromRGB(0, 170, 255),  -- Rare (Biru)
-    ["4"] = Color3.fromRGB(170, 0, 255),  -- Epic (Ungu)
-    ["5"] = Color3.fromRGB(255, 170, 0),  -- Legendary (Oranye)
-    ["6"] = Color3.fromRGB(255, 0, 127),  -- Mythic (Pink/Hot Red)
-    ["7"] = Color3.fromRGB(0, 255, 255)   -- SECRET (Cyan/Aqua)
+    ["1"] = {Name = "COMMON",    BG = Color3.fromRGB(255, 255, 255), TXT = Color3.fromRGB(0, 0, 0)},
+    ["2"] = {Name = "UNCOMMON",  BG = Color3.fromRGB(126, 255, 28),  TXT = Color3.fromRGB(0, 0, 0)},
+    ["3"] = {Name = "RARE",      BG = Color3.fromRGB(0, 68, 255),    TXT = Color3.fromRGB(0, 0, 0)},
+    ["4"] = {Name = "EPIC",      BG = Color3.fromRGB(74, 0, 153),    TXT = Color3.fromRGB(255, 255, 255)},
+    ["5"] = {Name = "LEGENDARY", BG = Color3.fromRGB(255, 187, 0),   TXT = Color3.fromRGB(0, 0, 0)},
+    ["6"] = {Name = "MYTHIC",    BG = Color3.fromRGB(255, 0, 0),     TXT = Color3.fromRGB(255, 255, 255)},
+    ["7"] = {Name = "SECRET",    BG = Color3.fromRGB(17, 217, 157),  TXT = Color3.fromRGB(0, 0, 0)}
 }
 
+----------------------------------------------------------------
+-- ======= [ LYNX UI ENGINE (LIGHTWEIGHT) ] =======
+----------------------------------------------------------------
 local LynxLib = {}
 function LynxLib:CreateWindow(title)
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
