@@ -7,40 +7,40 @@ local LocalPlayer = Players.LocalPlayer
 
 local TierSettings = {
     ["1"] = {Name = "COMMON",    BG = Color3.fromRGB(255,255,255), TXT = Color3.fromRGB(0,0,0)},
-    ["2"] = {Name = "UNCOMMON",  BG = Color3.fromRGB(126,255,28), TXT = Color3.fromRGB(0,0,0)},
-    ["3"] = {Name = "RARE",      BG = Color3.fromRGB(0,68,255), TXT = Color3.fromRGB(255,255,255)},
-    ["4"] = {Name = "EPIC",      BG = Color3.fromRGB(74,0,153), TXT = Color3.fromRGB(255,255,255)},
-    ["5"] = {Name = "LEGENDARY", BG = Color3.fromRGB(255,187,0), TXT = Color3.fromRGB(0,0,0)},
-    ["6"] = {Name = "MYTHIC",    BG = Color3.fromRGB(255,0,0), TXT = Color3.fromRGB(255,255,255)},
-    ["7"] = {Name = "SECRET",    BG = Color3.fromRGB(17,217,157), TXT = Color3.fromRGB(0,0,0)}
+    ["2"] = {Name = "UNCOMMON",  BG = Color3.fromRGB(126,255,28),  TXT = Color3.fromRGB(0,0,0)},
+    ["3"] = {Name = "RARE",      BG = Color3.fromRGB(0,68,255),    TXT = Color3.fromRGB(0,0,0)},
+    ["4"] = {Name = "EPIC",      BG = Color3.fromRGB(74,0,153),    TXT = Color3.fromRGB(255,255,255)},
+    ["5"] = {Name = "LEGENDARY", BG = Color3.fromRGB(255,187,0),   TXT = Color3.fromRGB(0,0,0)},
+    ["6"] = {Name = "MYTHIC",    BG = Color3.fromRGB(255,0,0),     TXT = Color3.fromRGB(255,255,255)},
+    ["7"] = {Name = "SECRET",    BG = Color3.fromRGB(17,217,157),  TXT = Color3.fromRGB(0,0,0)}
 }
 
 ----------------------------------------------------------------
--- ======= [ LYNX UI ENGINE ] =======
+-- ======= [ LYNX UI ENGINE V2 ] =======
 ----------------------------------------------------------------
 local LynxLib = {}
 local ScrollFrame, Layout
+local FilterEnabled = true
 
 function LynxLib:CreateWindow(title)
     local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 
-    local Main = Instance.new("Frame", ScreenGui)
-    Main.Size = UDim2.new(0,400,0,500)
-    Main.Position = UDim2.new(0.5,-200,0.5,-250)
-    Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    Instance.new("UICorner", Main)
+    local MainFrame = Instance.new("Frame", ScreenGui)
+    MainFrame.Size = UDim2.new(0, 400, 0, 520)
+    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -260)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    Instance.new("UICorner", MainFrame)
 
-    local Title = Instance.new("TextLabel", Main)
+    local Title = Instance.new("TextLabel", MainFrame)
     Title.Size = UDim2.new(1,0,0,40)
     Title.Text = "  "..title
-    Title.TextColor3 = Color3.white
+    Title.TextColor3 = Color3.new(1,1,1)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.GothamBold
     Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.TextSize = 16
 
-    ScrollFrame = Instance.new("ScrollingFrame", Main)
-    ScrollFrame.Size = UDim2.new(1,-20,1,-120)
+    ScrollFrame = Instance.new("ScrollingFrame", MainFrame)
+    ScrollFrame.Size = UDim2.new(1,-20,1,-150)
     ScrollFrame.Position = UDim2.new(0,10,0,50)
     ScrollFrame.BackgroundTransparency = 1
     ScrollFrame.ScrollBarThickness = 2
@@ -48,160 +48,127 @@ function LynxLib:CreateWindow(title)
     Layout = Instance.new("UIListLayout", ScrollFrame)
     Layout.Padding = UDim.new(0,5)
 
-    local SyncBtn = Instance.new("TextButton", Main)
-    SyncBtn.Size = UDim2.new(0.9,0,0,35)
-    SyncBtn.Position = UDim2.new(0.05,0,1,-50)
-    SyncBtn.Text = "SYNC MYTHIC / SECRET"
-    SyncBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
-    SyncBtn.TextColor3 = Color3.white
-    SyncBtn.Font = Enum.Font.GothamBold
-    Instance.new("UICorner", SyncBtn)
+    -- ===== BUTTON AREA =====
+    local Bottom = Instance.new("Frame", MainFrame)
+    Bottom.Size = UDim2.new(1,0,0,90)
+    Bottom.Position = UDim2.new(0,0,1,-90)
+    Bottom.BackgroundTransparency = 1
 
-    return SyncBtn
+    -- Toggle Button
+    local ToggleBtn = Instance.new("TextButton", Bottom)
+    ToggleBtn.Size = UDim2.new(0.9,0,0,30)
+    ToggleBtn.Position = UDim2.new(0.05,0,0,5)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    ToggleBtn.Text = "FILTER: ON (MYTHIC/SECRET)"
+    ToggleBtn.TextColor3 = Color3.new(1,1,1)
+    ToggleBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", ToggleBtn)
+
+    -- Refresh Button
+    local RefreshBtn = Instance.new("TextButton", Bottom)
+    RefreshBtn.Size = UDim2.new(0.9,0,0,35)
+    RefreshBtn.Position = UDim2.new(0.05,0,0,45)
+    RefreshBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    RefreshBtn.Text = "REFRESH BACKPACK"
+    RefreshBtn.TextColor3 = Color3.new(1,1,1)
+    RefreshBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", RefreshBtn)
+
+    -- Toggle Logic
+    ToggleBtn.MouseButton1Click:Connect(function()
+        FilterEnabled = not FilterEnabled
+        if FilterEnabled then
+            ToggleBtn.Text = "FILTER: ON (MYTHIC/SECRET)"
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+        else
+            ToggleBtn.Text = "FILTER: OFF (ALL ITEMS)"
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(90,60,60)
+        end
+    end)
+
+    return RefreshBtn
 end
 
 function LynxLib:AddItem(name, tier)
     local cfg = TierSettings[tostring(tier)] or TierSettings["1"]
 
-    local f = Instance.new("Frame", ScrollFrame)
-    f.Size = UDim2.new(1,-5,0,30)
-    f.BackgroundColor3 = cfg.BG
-    Instance.new("UICorner", f)
+    local Item = Instance.new("Frame", ScrollFrame)
+    Item.Size = UDim2.new(1,-5,0,30)
+    Item.BackgroundColor3 = cfg.BG
+    Instance.new("UICorner", Item)
 
-    local l = Instance.new("TextLabel", f)
-    l.Size = UDim2.new(1,-10,1,0)
-    l.Position = UDim2.new(0,10,0,0)
-    l.Text = "["..cfg.Name.."] "..name
-    l.TextColor3 = cfg.TXT
-    l.Font = Enum.Font.GothamBold
-    l.TextSize = 12
-    l.BackgroundTransparency = 1
-    l.TextXAlignment = Enum.TextXAlignment.Left
+    local Label = Instance.new("TextLabel", Item)
+    Label.Size = UDim2.new(1,-10,1,0)
+    Label.Position = UDim2.new(0,10,0,0)
+    Label.BackgroundTransparency = 1
+    Label.Text = "["..cfg.Name.."] "..name
+    Label.TextColor3 = cfg.TXT
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 12
+    Label.TextXAlignment = Enum.TextXAlignment.Left
 
-    ScrollFrame.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y + 35)
+    ScrollFrame.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y+35)
 end
 
-function LynxLib:ClearItems()
-    for _, v in pairs(ScrollFrame:GetChildren()) do
+function LynxLib:Clear()
+    for _,v in pairs(ScrollFrame:GetChildren()) do
         if v:IsA("Frame") then v:Destroy() end
     end
 end
 
 ----------------------------------------------------------------
--- ======= [ SAFE DATA LOADER ] =======
+-- ======= [ DATA LOGIC ] =======
 ----------------------------------------------------------------
 local Replion, ItemUtility, DataReplion
 
 task.spawn(function()
-    local success = pcall(function()
-        local shared = ReplicatedStorage:WaitForChild("Shared",10)
-        local packages = ReplicatedStorage:WaitForChild("Packages",10)
+    local shared = ReplicatedStorage:WaitForChild("Shared",30)
+    Replion = require(ReplicatedStorage.Packages.Replion)
+    ItemUtility = require(shared:WaitForChild("ItemUtility"))
 
-        Replion = require(packages:WaitForChild("Replion"))
-        ItemUtility = require(shared:WaitForChild("ItemUtility"))
-
-        -- retry system (ANTI BLANK)
-        for i = 1,10 do
-            local ok, repl = pcall(function()
-                return Replion.Client:GetReplion("Data")
-            end)
-
-            if ok and repl then
-                DataReplion = repl
-                break
-            end
-
-            task.wait(0.5)
-        end
-    end)
-
-    if not success then
-        warn("FAILED LOAD DATA SYSTEM")
-    end
+    repeat
+        DataReplion = Replion.Client:GetReplion("Data")
+        task.wait(1)
+    until DataReplion
 end)
 
-----------------------------------------------------------------
--- ======= [ CORE FILTER LOGIC - AKURAT ] =======
-----------------------------------------------------------------
 local function RefreshList()
-    LynxLib:ClearItems()
+    LynxLib:Clear()
 
-    if not DataReplion then
-        LynxLib:AddItem("WAITING DATA...", 4)
-        return
-    end
-
-    local success, data = pcall(function()
-        return DataReplion:Get("Inventory")
-    end)
-
-    if not success or not data then
-        LynxLib:AddItem("DATA ERROR", 6)
-        return
-    end
-
-    local items = data.Items or data or {}
+    local data = DataReplion and DataReplion:Get("Inventory")
+    local items = (data and data.Items) or {}
 
     local counts = {}
     local tierMap = {}
-    local total = 0
 
     for _, item in pairs(items) do
-        if item and item.Id then
+        local base = ItemUtility:GetItemData(item.Id)
+        if base and base.Data and base.Data.Type == "Fish" then
+            local name = base.Data.Name
+            local tier = tostring(base.Data.Tier or "1")
 
-            local ok, base = pcall(function()
-                return ItemUtility:GetItemData(item.Id)
-            end)
-
-            if ok and base and base.Data then
-                local d = base.Data
-
-                if d.Type == "Fish" then
-                    local tier = tostring(d.Tier or "1")
-
-                    -- 🔥 FILTER ONLY MYTHIC & SECRET
-                    if tier == "6" or tier == "7" then
-                        local name = d.Name or "Unknown"
-
-                        counts[name] = (counts[name] or 0) + 1
-                        tierMap[name] = tier
-                        total += 1
-                    end
+            -- FILTER LOGIC
+            if FilterEnabled then
+                if tier ~= "6" and tier ~= "7" then
+                    continue
                 end
             end
+
+            counts[name] = (counts[name] or 0) + 1
+            tierMap[name] = tier
         end
     end
 
-    if total == 0 then
-        LynxLib:AddItem("NO MYTHIC / SECRET FOUND", 4)
-        return
-    end
-
-    -- sorting biar rapi
-    local sorted = {}
     for name, qty in pairs(counts) do
-        table.insert(sorted, {name = name, qty = qty, tier = tierMap[name]})
+        LynxLib:AddItem(name.." (x"..qty..")", tierMap[name])
     end
-
-    table.sort(sorted, function(a,b)
-        return a.qty > b.qty
-    end)
-
-    for _, v in ipairs(sorted) do
-        LynxLib:AddItem(
-            v.name.." (x"..v.qty..")",
-            v.tier
-        )
-    end
-
-    LynxLib:AddItem("TOTAL: "..total, 5)
 end
 
 ----------------------------------------------------------------
 -- ======= [ MAIN ] =======
 ----------------------------------------------------------------
-local SyncButton = LynxLib:CreateWindow("PAWFY TRADE FILTER - STABLE")
+local RefreshButton = LynxLib:CreateWindow("FISCH LYNX V2")
 
-SyncButton.MouseButton1Click:Connect(function()
+RefreshButton.MouseButton1Click:Connect(function()
     RefreshList()
 end)
