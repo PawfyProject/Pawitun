@@ -63,7 +63,7 @@ _G.FishItConfig = _G.FishItConfig or {
         },
         ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
 
-        ["Minimum Rod"] = "Element Rod",
+        ["Minimum Rod"] = "Astral Rod",
     },
     ["WebHook"] = {
         ["Link Webhook"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
@@ -142,6 +142,7 @@ _G.FishItConfig = _G.FishItConfig or {
         "Midnight Bait",
         "Chroma Bait",
         "Corrupt Bait",
+        "Singularity Bait",
         },
         ["Endgame"] = "Singularity Bait",
     },
@@ -152,7 +153,6 @@ _G.FishItConfig = _G.FishItConfig or {
         "Midnight Rod",
         "Steampunk Rod",
         "Astral Rod",
-        "Ghostfinn Rod",
         },
         ["Location Rods"] = {
             ["Kohana Volcano"] = {"Starter Rod"},
@@ -161,7 +161,6 @@ _G.FishItConfig = _G.FishItConfig or {
         },
         ["Endgame"] = "Diamond Rod",
     },
-
     ["ExtremeFpsBoost"] = true,
     ["UltimatePerformance"] = true,
     ["Disable3DRender"] = true,
