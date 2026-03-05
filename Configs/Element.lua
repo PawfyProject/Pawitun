@@ -142,7 +142,6 @@ _G.FishItConfig = _G.FishItConfig or {
         "Midnight Bait",
         "Chroma Bait",
         "Corrupt Bait",
-        "Singularity Bait",
         },
         ["Endgame"] = "Singularity Bait",
     },
