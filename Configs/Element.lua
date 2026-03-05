@@ -132,7 +132,6 @@ _G.FishItConfig = _G.FishItConfig or {
         },
         ["Second Enchant List"] = {
             "Reeler I",
-            "Perfection",
             "Empowered I,",
         },
         ["Minimum Rod"] = "Ghostfinn Rod",
@@ -154,7 +153,7 @@ _G.FishItConfig = _G.FishItConfig or {
         "Midnight Rod",
         "Steampunk Rod",
         "Astral Rod",
-        "Ares Rod",
+        "Ghostfinn Rod",
         },
         ["Location Rods"] = {
             ["Kohana Volcano"] = {"Starter Rod"},
@@ -166,7 +165,7 @@ _G.FishItConfig = _G.FishItConfig or {
 
     ["ExtremeFpsBoost"] = true,
     ["UltimatePerformance"] = true,
-    ["Disable3DRender"] = false,
+    ["Disable3DRender"] = true,
     ["AutoRemovePlayer"] = true,
 
     ["AutoReconnect"] = false,
