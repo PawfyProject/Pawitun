@@ -2,7 +2,7 @@
 
 clear
 echo "================================="
-echo "        GOFILE FINAL INSTALLER"
+echo "      GOFILE FINAL INSTALLER PRO"
 echo "        Update: 2026 Compatible"
 echo "================================="
 
@@ -19,29 +19,55 @@ done
 
 # ===== input folder =====
 echo ""
-read -p "Masukkan Link Folder Gofile: " LINK
+read -p "Masukkan Link Folder Gofile (public): " LINK
 
-# Ekstrak Folder ID dari Link
-FOLDER=$(echo $LINK | awk -F/ '{print $NF}')
+# Hapus trailing slash dan ambil Folder ID
+FOLDER=$(echo "$LINK" | sed 's#/$##' | awk -F/ '{print $NF}')
+
+if [ -z "$FOLDER" ]; then
+    echo "Folder ID tidak valid!"
+    exit 1
+fi
 
 echo ""
 echo "Mengambil daftar APK dari folder: $FOLDER..."
 
-# Gofile API terbaru: Mengambil konten folder tanpa perlu akun/token untuk folder publik
-# Kita menggunakan endpoint /getFolderContent
+# ===== Ambil konten folder dari API Gofile =====
 API_URL="https://api.gofile.io/getFolderContent?folderId=$FOLDER"
-RESPONSE=$(curl -s -A "Mozilla/5.0" "$API_URL")
+RETRY_API=0
 
-# Cek apakah folder valid
-STATUS=$(echo "$RESPONSE" | jq -r '.status' 2>/dev/null)
+while [ $RETRY_API -lt 3 ]; do
+    RESPONSE=$(curl -s -A "Mozilla/5.0" "$API_URL")
+    
+    # Cek valid JSON
+    echo "$RESPONSE" | jq . >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "Response API tidak valid, retrying..."
+        RETRY_API=$((RETRY_API+1))
+        sleep 2
+        continue
+    fi
+    
+    STATUS=$(echo "$RESPONSE" | jq -r '.status')
+    if [ "$STATUS" == "ok" ]; then
+        break
+    elif [ "$STATUS" == "error" ]; then
+        MSG=$(echo "$RESPONSE" | jq -r '.message')
+        echo "API Error: $MSG"
+        exit 1
+    else
+        echo "Unknown API response, retrying..."
+        RETRY_API=$((RETRY_API+1))
+        sleep 2
+    fi
+done
 
-if [ "$STATUS" != "ok" ]; then
-    echo "Gagal mengambil data folder. Status: $STATUS"
-    echo "Pastikan Link Folder benar dan bersifat Publik."
+if [ $RETRY_API -ge 3 ]; then
+    echo "Gagal mengambil folder setelah 3 percobaan."
     exit 1
 fi
 
-# Mengambil list file APK
+# ===== Ambil list APK =====
 echo "$RESPONSE" | jq -r '.data.contents | to_entries[] | .value | select(.name|endswith(".apk")) | "\(.name)|\(.link)|\(.size)"' > list.txt
 
 if [ ! -s list.txt ]; then
@@ -60,7 +86,7 @@ do
 done < list.txt
 
 echo ""
-read -p "Pilih nomor (contoh: 1 2 3): " SELECT
+read -p "Pilih nomor APK untuk download/install (contoh: 1 2 3): " SELECT
 
 # ===== User Agent List =====
 UA[0]="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -86,14 +112,13 @@ download_install () {
     retry=0
     while true
     do
-        # Gunakan wget dengan UA agar tidak diblokir saat download link
-        wget -q --user-agent="$AGENT" --show-progress -O "$NAME" "$URL"
+        wget -q --timeout=30 --user-agent="$AGENT" --show-progress -O "$NAME" "$URL"
 
         if [ ! -f "$NAME" ]; then
             retry=$((retry+1))
             sleep 2
         else
-            DOWN_SIZE=$(stat -c%s "$NAME")
+            DOWN_SIZE=$(wc -c < "$NAME")
             if [ "$DOWN_SIZE" -eq "$SIZE" ]; then
                 echo "Download Verified ✔"
                 break
@@ -128,7 +153,7 @@ download_install () {
 for num in $SELECT
 do
     download_install $num &
-    sleep $((RANDOM % 3 + 2))
+    sleep $((RANDOM % 3 + 1))
 done
 
 wait
