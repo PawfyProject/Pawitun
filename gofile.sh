@@ -2,81 +2,64 @@
 
 clear
 echo "================================="
-echo "      GOFILE FINAL INSTALLER PRO"
-echo "        Update: 2026 Compatible"
+echo "        GOFILE FINAL INSTALLER"
+echo "        Status: Pawfy Sys v3"
 echo "================================="
 
 # ===== dependency check =====
 deps=(curl wget jq aapt)
 for pkg in "${deps[@]}"
 do
-    if ! command -v $pkg >/dev/null 2>&1
-    then
+    if ! command -v $pkg >/dev/null 2>&1; then
         echo "Menginstall $pkg..."
         pkg install $pkg -y
     fi
 done
 
+# ===== Sesi & Token (Wajib di 2026) =====
+echo -e "\n[*] Inisialisasi sesi Gofile..."
+# Kita butuh cookie dan token akun guest agar tidak dianggap bot ilegal
+COOKIE_FILE="gofile_cookie.txt"
+RESPONSE_ACC=$(curl -s -A "Mozilla/5.0" -c "$COOKIE_FILE" https://api.gofile.io/createAccount)
+TOKEN=$(echo "$RESPONSE_ACC" | jq -r '.data.token' 2>/dev/null)
+
+if [ "$TOKEN" == "null" ] || [ -z "$TOKEN" ]; then
+    echo "[!] Gagal membuat sesi API. Gofile mungkin sedang maintenance."
+    exit 1
+fi
+
 # ===== input folder =====
 echo ""
-read -p "Masukkan Link Folder Gofile (public): " LINK
+read -p "Masukkan Link atau ID Folder Gofile: " INPUT_LINK
+FOLDER=$(echo $INPUT_LINK | awk -F/ '{print $NF}')
 
-# Hapus trailing slash dan ambil Folder ID
-FOLDER=$(echo "$LINK" | sed 's#/$##' | awk -F/ '{print $NF}')
+echo "[*] Mengambil konten folder: $FOLDER..."
 
-if [ -z "$FOLDER" ]; then
-    echo "Folder ID tidak valid!"
+# Menembak API dengan Token dan Cookie yang sudah didapat
+# Endpoint: /getFolderContent
+API_URL="https://api.gofile.io/getFolderContent?folderId=$FOLDER&token=$TOKEN"
+RESPONSE_CONTENT=$(curl -s -A "Mozilla/5.0" -b "$COOKIE_FILE" "$API_URL")
+
+STATUS=$(echo "$RESPONSE_CONTENT" | jq -r '.status' 2>/dev/null)
+
+if [ "$STATUS" != "ok" ]; then
+    echo "[!] Error: Gagal mengambil data folder."
+    echo "[!] Status API: $STATUS"
+    rm -f "$COOKIE_FILE"
     exit 1
 fi
 
-echo ""
-echo "Mengambil daftar APK dari folder: $FOLDER..."
-
-# ===== Ambil konten folder dari API Gofile =====
-API_URL="https://api.gofile.io/getFolderContent?folderId=$FOLDER"
-RETRY_API=0
-
-while [ $RETRY_API -lt 3 ]; do
-    RESPONSE=$(curl -s -A "Mozilla/5.0" "$API_URL")
-    
-    # Cek valid JSON
-    echo "$RESPONSE" | jq . >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo "Response API tidak valid, retrying..."
-        RETRY_API=$((RETRY_API+1))
-        sleep 2
-        continue
-    fi
-    
-    STATUS=$(echo "$RESPONSE" | jq -r '.status')
-    if [ "$STATUS" == "ok" ]; then
-        break
-    elif [ "$STATUS" == "error" ]; then
-        MSG=$(echo "$RESPONSE" | jq -r '.message')
-        echo "API Error: $MSG"
-        exit 1
-    else
-        echo "Unknown API response, retrying..."
-        RETRY_API=$((RETRY_API+1))
-        sleep 2
-    fi
-done
-
-if [ $RETRY_API -ge 3 ]; then
-    echo "Gagal mengambil folder setelah 3 percobaan."
-    exit 1
-fi
-
-# ===== Ambil list APK =====
-echo "$RESPONSE" | jq -r '.data.contents | to_entries[] | .value | select(.name|endswith(".apk")) | "\(.name)|\(.link)|\(.size)"' > list.txt
+# Parsing daftar APK
+# Gofile mengelompokkan file di dalam objek 'children' atau 'contents'
+echo "$RESPONSE_CONTENT" | jq -r '.data.contents | to_entries[] | .value | select(.name|endswith(".apk")) | "\(.name)|\(.link)|\(.size)"' > list.txt 2>/dev/null
 
 if [ ! -s list.txt ]; then
-    echo "Tidak ada APK ditemukan di folder ini."
+    echo "[!] Tidak ada file .apk ditemukan di folder tersebut."
+    rm -f "$COOKIE_FILE"
     exit 1
 fi
 
-echo ""
-echo "===== DAFTAR APK FOUND ====="
+echo -e "\n===== DAFTAR APK DITEMUKAN ====="
 i=1
 while IFS="|" read name link size
 do
@@ -85,79 +68,60 @@ do
     i=$((i+1))
 done < list.txt
 
-echo ""
-read -p "Pilih nomor APK untuk download/install (contoh: 1 2 3): " SELECT
+echo -e "================================="
+read -p "Pilih nomor (contoh: 1 2): " SELECT
 
-# ===== User Agent List =====
-UA[0]="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-UA[1]="Mozilla/5.0 (Android 11; Mobile; rv:94.0) Gecko/94.0 Firefox/94.0"
-UA[2]="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-
+# ===== Fungsi Download & Install =====
 download_install () {
     LINE=$(sed -n "${1}p" list.txt)
-    if [ -z "$LINE" ]; then return; fi
+    [ -z "$LINE" ] && return
 
     NAME=$(echo $LINE | cut -d'|' -f1)
     URL=$(echo $LINE | cut -d'|' -f2)
     SIZE=$(echo $LINE | cut -d'|' -f3)
 
-    R=$((RANDOM % 3))
-    AGENT=${UA[$R]}
+    echo -e "\n[+] Processing: $NAME"
 
-    echo ""
-    echo "---------------------------------"
-    echo "Downloading: $NAME"
-    echo "---------------------------------"
+    # Download menggunakan wget dengan Cookie sesi agar link tidak expire/forbidden
+    wget -q --user-agent="Mozilla/5.0" --load-cookies="$COOKIE_FILE" --show-progress -O "$NAME" "$URL"
 
-    retry=0
-    while true
-    do
-        wget -q --timeout=30 --user-agent="$AGENT" --show-progress -O "$NAME" "$URL"
-
-        if [ ! -f "$NAME" ]; then
-            retry=$((retry+1))
-            sleep 2
-        else
-            DOWN_SIZE=$(wc -c < "$NAME")
-            if [ "$DOWN_SIZE" -eq "$SIZE" ]; then
-                echo "Download Verified ✔"
-                break
+    if [ -f "$NAME" ]; then
+        # Cek integritas file
+        ACTUAL_SIZE=$(stat -c%s "$NAME")
+        if [ "$ACTUAL_SIZE" -eq "$SIZE" ]; then
+            echo "[✔] Download Verified."
+            
+            # Ambil Package Name
+            PKG=$(aapt dump badging "$NAME" 2>/dev/null | grep package | awk -F"'" '{print $2}')
+            
+            if [ ! -z "$PKG" ]; then
+                echo "[*] Package: $PKG"
+                echo "[*] Menghapus versi lama..."
+                pm uninstall "$PKG" >/dev/null 2>&1
+                echo "[*] Menginstall APK baru..."
+                pm install -r "$NAME"
+                echo "[✔] $NAME Berhasil Terpasang."
             else
-                echo "Size mismatch, retrying..."
-                rm "$NAME"
-                retry=$((retry+1))
-                sleep 2
+                echo "[!] Gagal membaca manifest APK."
             fi
+        else
+            echo "[!] Ukuran file tidak cocok (Corrupt)."
         fi
-
-        if [ "$retry" -ge 3 ]; then
-            echo "Gagal mendownload $NAME"
-            return
-        fi
-    done
-
-    # Proses Install
-    PKG=$(aapt dump badging "$NAME" 2>/dev/null | grep package | awk -F"'" '{print $2}')
-    if [ ! -z "$PKG" ]; then
-        echo "Package: $PKG"
-        echo "Cleaning old version..."
-        pm uninstall "$PKG" >/dev/null 2>&1
-        echo "Installing..."
-        pm install -r "$NAME"
-        echo "Done: $NAME ✔"
+        rm -f "$NAME"
+    else
+        echo "[!] Gagal mengunduh $NAME."
     fi
-    rm -f "$NAME"
 }
 
-# ===== Execution =====
+# ===== Jalankan Paralel =====
 for num in $SELECT
 do
     download_install $num &
-    sleep $((RANDOM % 3 + 1))
+    sleep 2 # Jeda singkat agar tidak overload
 done
 
 wait
-rm -f list.txt
+rm -f list.txt "$COOKIE_FILE"
 echo -e "\n================================="
-echo "        SEMUA PROSES SELESAI"
+echo "        PROSES SELESAI"
 echo "================================="
