@@ -1,4 +1,4 @@
-htloadstring(game:HttpGet("https://raw.githubusercontent.com/FnDXueyi/list/refs/heads/main/game"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/FnDXueyi/list/refs/heads/main/game"))()
 _G.FishItConfig = _G.FishItConfig or {
     ["Fishing"] = {
         ["Auto Perfect"] = false,
@@ -42,10 +42,9 @@ _G.FishItConfig = _G.FishItConfig or {
     },
     ["Doing Quest"] = {
         ["Auto Ghostfinn Rod"] = true,
-        ["Auto Element Rod"] = false,
-	    ["Auto Element Rod 2"] = true,
+        ["Auto Element Rod 2"] = true,
         ["Auto Diamond Rod"] = false,
-        ["Unlock Ancient Ruin"] = true,
+        ["Unlock Ancient Ruin"] = false,
         ["Allowed Sacrifice"] = {
             "Ghost Shark",
             "Cryoshade Glider",
@@ -62,13 +61,12 @@ _G.FishItConfig = _G.FishItConfig or {
             "Gladiator Shark", 
             "Frostborn Shark", 
         },
-        ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
+        ["FARM_LOC_SECRET_SACRIFICE"] = "Crater Island",
 
         ["Minimum Rod"] = "Ghostfinn Rod",
     },
     ["WebHook"] = {
-      
-		["Link Webhook"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
+        ["Link Webhook"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
         ["Auto Sending"] = true,
         ["Category"] = {"Secret"},
 
@@ -92,7 +90,9 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Auto Use"] = true,
         ["Minimum Rod"] = "Ghostfinn Rod",
         ["Buy List"] = {
-            ["Mutation Totem"] = 100,
+            ["Mutation Totem"] = 1,
+            "Luck Totem",
+            "Shiny Totem",
         },
     },
     ["Event"] = {
@@ -106,12 +106,11 @@ _G.FishItConfig = _G.FishItConfig or {
         },
     },
     ["Enchant"] = {
-        ["Auto Enchant"] =true,
+        ["Auto Enchant"] = true,
         ["Roll Enchant"] = true,
         ["Evolved Roll Enchant"] = false,
         ["Enchant List"] = {
-            "Empowered I",
-            "Reeler I",
+            "Cursed I",
         },
         ["Second Enchant"] = false,
         ["Allowed Sacrifice"] = {
@@ -132,6 +131,7 @@ _G.FishItConfig = _G.FishItConfig or {
         },
         ["Second Enchant List"] = {
             "Reeler I",
+            "Perfection",
             "Empowered I,",
         },
         ["Minimum Rod"] = "Ghostfinn Rod",
@@ -147,29 +147,32 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Endgame"] = "Singularity Bait",
     },
     ["Rod List"] = {
-        ["Auto Buying"] = true,
+        ["Auto Buying"] = false,
         ["Buy List"] = {
         "Grass Rod",
         "Midnight Rod",
         "Steampunk Rod",
         "Astral Rod",
+        "Ares Rod",
         },
         ["Location Rods"] = {
             ["Kohana Volcano"] = {"Starter Rod"},
-            ["Tropical Grove"] = {"Grass Rod", "Midnight Rod", "Astral Rod"},
+            ["Tropical Grove"] = {"Grass Rod", "Midnight Rod"},
+            ["Sisyphus Statue"] = {"Astral Rod"},
             ["Treasure Room"] = {"Diamond Rod", "Element Rod", "Ghostfinn Rod"},
         },
         ["Endgame"] = "Diamond Rod",
     },
+
     ["ExtremeFpsBoost"] = true,
     ["UltimatePerformance"] = true,
-    ["Disable3DRender"] = true,
+    ["Disable3DRender"] = false,
     ["AutoRemovePlayer"] = true,
 
-    ["AutoReconnect"] = true,
+    ["AutoReconnect"] = false,
     ["HideGUI"] = false,
     ["Debug"] = false,
-    ["EXIT_MAP_IF_DISCONNECT"] = true,
+    ["EXIT_MAP_IF_DISCONNECT"] = false,
 }
 script_key="014D239D29E821534EFDDFAC64E30F95";
 
