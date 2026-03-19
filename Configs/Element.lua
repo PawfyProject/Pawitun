@@ -45,7 +45,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Auto Element Rod"] = false,
 		["Auto Element Rod 2"] = true,
         ["Auto Diamond Rod"] = false,
-        ["Unlock Ancient Ruin"] = false,
+        ["Unlock Ancient Ruin"] = true,
         ["Allowed Sacrifice"] = {
             "Ghost Shark",
             "Cryoshade Glider",
@@ -111,8 +111,10 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Evolved Roll Enchant"] = false,
         ["Enchant List"] = {
             "Cursed I",
+            "Reeler I",
+            "Empowered I",
         },
-        ["Second Enchant"] = false,
+        ["Second Enchant"] = true,
         ["Allowed Sacrifice"] = {
             "Ghost Shark",
             "Cryoshade Glider",
@@ -131,7 +133,7 @@ _G.FishItConfig = _G.FishItConfig or {
         },
         ["Second Enchant List"] = {
             "Reeler I",
-            "Perfection",
+            "Big Hunter I",
             "Empowered I,",
         },
         ["Minimum Rod"] = "Ghostfinn Rod",
@@ -153,7 +155,6 @@ _G.FishItConfig = _G.FishItConfig or {
         "Midnight Rod",
         "Steampunk Rod",
         "Astral Rod",
-        "Ares Rod",
         },
         ["Location Rods"] = {
             ["Kohana Volcano"] = {"Starter Rod"},
