@@ -43,7 +43,7 @@ _G.FishItConfig = _G.FishItConfig or {
     ["Doing Quest"] = {
         ["Auto Ghostfinn Rod"] = true,
         ["Auto Element Rod"] = false,
-		["Auto Element Rod 2"] = true,
+		["Auto Element Rod 2"] = false,
         ["Auto Diamond Rod"] = false,
         ["Unlock Ancient Ruin"] = true,
         ["Allowed Sacrifice"] = {
@@ -92,7 +92,6 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Minimum Rod"] = "Ghostfinn Rod",
         ["Buy List"] = {
             ["Mutation Totem"] = 24,
-            "Luck Totem",
         },
     },
     ["Event"] = {
@@ -100,8 +99,6 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Minimum Rod"] = "Ghostfinn Rod",
         ["Event List"] = {
             "Megalodon Hunt",
-            "Ghost Shark Hunt",
-            "Shark Hunt",
             -- ["Ancient Lochness Monster"] = false,
         },
     },
@@ -114,7 +111,7 @@ _G.FishItConfig = _G.FishItConfig or {
             "Reeler I",
             "Empowered I",
         },
-        ["Second Enchant"] = true,
+        ["Second Enchant"] = false,
         ["Allowed Sacrifice"] = {
             "Ghost Shark",
             "Cryoshade Glider",
@@ -136,7 +133,7 @@ _G.FishItConfig = _G.FishItConfig or {
             "Big Hunter I",
             "Empowered I,",
         },
-        ["Minimum Rod"] = "Element Rod",
+        ["Minimum Rod"] = "Ghostfinn Rod",
     },
 ["Bait List"] = {
         ["Auto Buying"] = true,
@@ -149,7 +146,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Endgame"] = "Singularity Bait",
     },
     ["Rod List"] = {
-        ["Auto Buying"] = false,
+        ["Auto Buying"] = true,
         ["Buy List"] = {
         "Grass Rod",
         "Midnight Rod",
