@@ -54,8 +54,13 @@ _G.FishItConfig = _G.FishItConfig or {
             "King Crab",
             "Giant Squid",
             "Blob Shark",
+            "Ghost Shark",
+            "King Jelly", 
             "Mosasaur Shark",
+            "Elshark Gran Maja", 
+            "Bone Whale", 
             "Gladiator Shark", 
+            "Frostborn Shark", 
         },
         ["FARM_LOC_SECRET_SACRIFICE"] = "Ocean",
 
@@ -109,8 +114,6 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Second Enchant"] = true,
         ["Allowed Sacrifice"] = {
             "Ghost Shark",
-            "Queen Crab",
-            "King Crab",
             "Gladiator Shark", 
             "Blob Shark", 
         },
