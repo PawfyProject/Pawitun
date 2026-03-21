@@ -43,7 +43,7 @@ _G.FishItConfig = _G.FishItConfig or {
     ["Doing Quest"] = {
         ["Auto Ghostfinn Rod"] = true,
         ["Auto Element Rod"] = false,
-		["Auto Element Rod 2"] = false,
+		["Auto Element Rod 2"] = true,
         ["Auto Diamond Rod"] = false,
         ["Unlock Ancient Ruin"] = true,
         ["Allowed Sacrifice"] = {
@@ -56,15 +56,12 @@ _G.FishItConfig = _G.FishItConfig or {
             "Blob Shark",
             "Ghost Shark",
             "King Jelly", 
-            "Mosasaur Shark",
-            "Elshark Gran Maja", 
-            "Bone Whale", 
             "Gladiator Shark", 
             "Frostborn Shark", 
         },
         ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
 
-        ["Minimum Rod"] = "Astral Rod",
+        ["Minimum Rod"] = "Ghostfinn Rod",
     },
     ["WebHook"] = {
         ["Link Webhook"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
