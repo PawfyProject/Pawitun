@@ -57,7 +57,7 @@ _G.FishItConfig = _G.FishItConfig or {
             "Mosasaur Shark",
             "Gladiator Shark", 
         },
-        ["FARM_LOC_SECRET_SACRIFICE"] = "Ocean,
+        ["FARM_LOC_SECRET_SACRIFICE"] = "Ocean",
 
         ["Minimum Rod"] = "Ghostfinn Rod",
     },
