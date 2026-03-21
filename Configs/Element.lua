@@ -67,7 +67,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Link Webhook"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
         ["Auto Sending"] = true,
         ["Category"] = {"Secret"},
-
+            {Name = "Ruby", Variant = "Gemstone"},
         ["Link Webhook Quest Complete"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
     },
     ["Weather"] = {
@@ -142,8 +142,8 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Location Rods"] = {
             ["Kohana Volcano"] = {"Starter Rod"},
             ["Tropical Grove"] = {"Grass Rod", "Midnight Rod"},
-            ["Sisyphus Statue"] = {"Ares Rod"},
-            ["Treasure Room"] = {"Astral Rod, Diamond Rod", "Element Rod", "Ghostfinn Rod"},
+            ["Sisyphus Statue"] = {"Astrak Rod"},
+            ["Treasure Room"] = {"Angler Rod, Diamond Rod", "Element Rod", "Ghostfinn Rod"},
         },
         ["Endgame"] = "Diamond Rod",
     },
