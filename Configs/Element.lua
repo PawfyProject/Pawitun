@@ -62,9 +62,9 @@ _G.FishItConfig = _G.FishItConfig or {
             "Gladiator Shark", 
             "Frostborn Shark", 
         },
-        ["FARM_LOC_SECRET_SACRIFICE"] = "Ocean",
+        ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
 
-        ["Minimum Rod"] = "Ghostfinn Rod",
+        ["Minimum Rod"] = "Astral Rod",
     },
     ["WebHook"] = {
         ["Link Webhook"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
@@ -145,8 +145,8 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Location Rods"] = {
             ["Kohana Volcano"] = {"Starter Rod"},
             ["Tropical Grove"] = {"Grass Rod", "Midnight Rod"},
-            ["Sisyphus Statue"] = {"Astral Rod"},
-            ["Treasure Room"] = {"Diamond Rod", "Element Rod", "Ghostfinn Rod"},
+            ["Sisyphus Statue"] = {"Ares Rod"},
+            ["Treasure Room"] = {"Astral Rod, Diamond Rod", "Element Rod", "Ghostfinn Rod"},
         },
         ["Endgame"] = "Diamond Rod",
     },
