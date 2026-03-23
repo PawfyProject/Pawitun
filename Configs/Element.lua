@@ -56,7 +56,7 @@ _G.FishItConfig = _G.FishItConfig or {
             "Ghost Shark",
             "Gladiator Shark", 
         },
-        ["FARM_LOC_SECRET_SACRIFICE"] = "Ocean",
+        ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
 
         ["Minimum Rod"] = "Ghostfinn Rod",
     },
@@ -138,8 +138,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Location Rods"] = {
             ["Kohana Volcano"] = {"Starter Rod"},
             ["Tropical Grove"] = {"Grass Rod", "Midnight Rod"},
-            ["Sisyphus Statue"] = {"Astral Rod"},
-            ["Ancient Ruin"] = {"Ghostfinn Rod"},			
+            ["Sisyphus Statue"] = {"Astral Rod"},			
             ["Treasure Room"] = {"Diamond Rod", "Element Rod"},
         },
         ["Endgame"] = "Diamond Rod",
