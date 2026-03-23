@@ -9,7 +9,7 @@ pkg install tsu -y
 pkg install termux-api -y  # untuk auto run boot
 
 # ==============================
-# HAPUS FILE LAMA JIKA ADA
+# HAPUS FILE LAMA
 # ==============================
 cd ~
 rm -f optidev.sh
@@ -19,12 +19,11 @@ rm -f optidev.sh
 # ==============================
 echo "[*] Download optimizer.sh dari GitHub raw"
 curl -L -o ~/optidev.sh https://raw.githubusercontent.com/PawfyProject/Pawitun/refs/heads/main/optidev.sh
-
 chmod +x ~/optidev.sh
 echo "[✓] Optimizer siap dijalankan"
 
 # ==============================
-# SET AUTO RUN SETELAH REBOOT (TERMUX-BOOT)
+# SET AUTO RUN SAAT REBOOT (TERMUX-BOOT)
 # ==============================
 mkdir -p ~/.termux/boot
 rm -f ~/.termux/boot/start.sh
