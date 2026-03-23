@@ -57,7 +57,6 @@ _G.FishItConfig = _G.FishItConfig or {
             "Ghost Shark",
             "King Jelly", 
             "Gladiator Shark", 
-            "Frostborn Shark", 
         },
         ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
 
@@ -108,7 +107,7 @@ _G.FishItConfig = _G.FishItConfig or {
             "Reeler I",
             "Empowered I",
         },
-        ["Second Enchant"] = false,
+        ["Second Enchant"] = true,
         ["Allowed Sacrifice"] = {
             "Ghost Shark",
             "Gladiator Shark", 
