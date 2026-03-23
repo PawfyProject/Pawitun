@@ -43,7 +43,7 @@ _G.FishItConfig = _G.FishItConfig or {
     ["Doing Quest"] = {
         ["Auto Ghostfinn Rod"] = true,
         ["Auto Element Rod"] = false,
-		["Auto Element Rod 2"] = false,
+		["Auto Element Rod 2"] = true,
         ["Auto Diamond Rod"] = false,
         ["Unlock Ancient Ruin"] = true,
         ["Allowed Sacrifice"] = {
@@ -103,7 +103,7 @@ _G.FishItConfig = _G.FishItConfig or {
             "Reeler I",
             "Empowered I",
         },
-        ["Second Enchant"] = false,
+        ["Second Enchant"] = true,
         ["Allowed Sacrifice"] = {
             "Ghost Shark",
             "Gladiator Shark", 
@@ -138,7 +138,7 @@ _G.FishItConfig = _G.FishItConfig or {
             ["Kohana Volcano"] = {"Starter Rod"},
             ["Tropical Grove"] = {"Grass Rod", "Midnight Rod"},
             ["Sisyphus Statue"] = {"Astral Rod"},
-            ["Ancient Ruin"] = {"Diamond Rod", "Element Rod""Ghostfinn Rod"},			
+            ["Ancient Ruin"] = {"Ghostfinn Rod"},			
             ["Treasure Room"] = {"Diamond Rod", "Element Rod"},
         },
         ["Endgame"] = "Diamond Rod",
