@@ -47,14 +47,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Auto Diamond Rod"] = false,
         ["Unlock Ancient Ruin"] = true,
         ["Allowed Sacrifice"] = {
-            "Cryoshade Glider",
-            "Panther Eel",
             "King Crab",
-            "Queen Crab",
-            "Giant Squid",
-            "Blob Shark",
-            "Ghost Shark",
-            "Gladiator Shark", 
         },
         ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
 
@@ -104,7 +97,7 @@ _G.FishItConfig = _G.FishItConfig or {
             "Reeler I",
             "Empowered I",
         },
-        ["Second Enchant"] = true,
+        ["Second Enchant"] = false,
         ["Allowed Sacrifice"] = {
             "Ghost Shark",
             "Gladiator Shark", 
