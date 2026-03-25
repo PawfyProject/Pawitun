@@ -44,16 +44,13 @@ _G.FishItConfig = _G.FishItConfig or {
     ["Doing Quest"] = {
         ["Auto Ghostfinn Rod"] = true,
         ["Auto Element Rod"] = false,
-		["Auto Element Rod 2"] = false,
+		["Auto Element Rod 2"] = true,
         ["Auto Diamond Rod"] = false,
         ["Unlock Ancient Ruin"] = true,
         ["Allowed Sacrifice"] = {
-            "Cryoshade Glider",
-            "Panther Eel",
-            "Giant Squid",
-            "Blob Shark",
-            "Ghost Shark",
-            "Gladiator Shark", 
+            "King Crab",
+            "Queen Crab",
+
         },
         ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
 
@@ -112,12 +109,13 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Second Enchant List"] = {
             "Reeler I",
             "Big Hunter I",
+            "Cursed I",
             "Empowered I,",
         },
         ["Minimum Rod"] = "Element Rod",
     },
 ["Bait List"] = {
-        ["Auto Buying"] = true,
+        ["Auto Buying"] = false,
         ["Buy List"] = {
         "Midnight Bait",
         "Chroma Bait",
@@ -127,7 +125,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Endgame"] = "Singularity Bait",
     },
     ["Rod List"] = {
-        ["Auto Buying"] = true,
+        ["Auto Buying"] = false,
         ["Buy List"] = {
         "Grass Rod",
         "Midnight Rod",
