@@ -28,7 +28,6 @@ _G.FishItConfig = _G.FishItConfig or {
             -- {Variant = "Leviathan's Rage"}, -- Variant Only
         },
         ["Item Name"] = {
-            "Evolved Enchant Stone",
             "Enchant Stone",
         },
     },
