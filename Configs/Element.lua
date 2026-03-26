@@ -51,7 +51,7 @@ _G.FishItConfig = _G.FishItConfig or {
         },
         ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
 
-        ["Minimum Rod"] = "Ghostfinn Rod",
+        ["Minimum Rod"] = "Astral Rod",
     },
     ["WebHook"] = {
         ["Link Webhook"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
@@ -132,9 +132,9 @@ _G.FishItConfig = _G.FishItConfig or {
         },
         ["Location Rods"] = {
             ["Kohana Volcano"] = {"Starter Rod"},
-            ["Tropical Grove"] = {"Grass Rod", "Midnight Rod", "Astral Rod"},
-            ["Treasure Room"] = {"Ghostfinn Rod"},	
-            ["Ancient Ruin"] = {"Diamond Rod", "Element Rod"},
+            ["Tropical Grove"] = {"Grass Rod", "Midnight Rod"},
+            ["Treasure Room"] = {"Astral Rod"},	
+            ["Ancient Ruin"] = {"Diamond Rod","Ghostfinn Rod", "Element Rod"},
         },
         ["Endgame"] = "Diamond Rod",
     },
