@@ -92,8 +92,9 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Minimum Rod"] = "Ghostfinn Rod",
         ["Event List"] = {
             "Thunderzilla Hunt",
-			["Ancient Lochness Monster"] = true,			
-        },
+			["Ancient Lochness Monster"] = true,
+            "Megalodon Hunt",
+		},
     },
     ["Enchant"] = {
         ["Auto Enchant"] = false,
@@ -128,7 +129,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Minimum Rod"] = "Ghostfinn Rod",
     },
 ["Bait List"] = {
-        ["Auto Buying"] = false,
+        ["Auto Buying"] = true,
         ["Buy List"] = {
         "Midnight Bait",
         "Chroma Bait",
