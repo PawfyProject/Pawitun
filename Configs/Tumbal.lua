@@ -92,8 +92,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Minimum Rod"] = "Element Rod",
         ["Event List"] = {
 			["Ancient Lochness Monster"] = true,
-            "Thunderzilla Hunt",
-            "Megalodon Hunt",
+            "Thunderzilla Hunt"
 		},
     },
     ["Enchant"] = {
