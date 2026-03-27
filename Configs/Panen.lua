@@ -90,7 +90,6 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Event List"] = {
 			["Ancient Lochness Monster"] = true,
             "Thunderzilla Hunt",
-            "Megalodon Hunt",
 		},
     },
     ["Enchant"] = {
