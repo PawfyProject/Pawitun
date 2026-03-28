@@ -92,7 +92,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Minimum Rod"] = "Element Rod",
         ["Event List"] = {
 			["Ancient Lochness Monster"] = true,
-            "Thunderzilla Hunt"
+     --       "Thunderzilla Hunt"
 		},
     },
     ["Enchant"] = {
@@ -125,7 +125,7 @@ _G.FishItConfig = _G.FishItConfig or {
             "Perfection",
             "Empowered I,",
         },
-        ["Minimum Rod"] = "Ghostfinn Rod",
+        ["Minimum Rod"] = "Element Rod",
     },
 ["Bait List"] = {
         ["Auto Buying"] = true,
@@ -149,15 +149,14 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Location Rods"] = {
             ["Kohana Volcano"] = {"Starter Rod"},
             ["Tropical Grove"] = {"Grass Rod", "Midnight Rod", "Astral Rod"},
-            ["Treasure Room"] = {"Ghostfinn Rod"},	
-            ["Ancient Ruin"] = {"Diamond Rod", "Element Rod"},
+            ["Ancient Ruin"] = {"Ghostfinn Rod", "Diamond Rod", "Element Rod"},
 		},
         ["Endgame"] = "Diamond Rod",
     },
 
     ["ExtremeFpsBoost"] = true,
     ["UltimatePerformance"] = true,
-    ["Disable3DRender"] = false,
+    ["Disable3DRender"] = true,
     ["AutoRemovePlayer"] = true,
 
     ["AutoReconnect"] = false,
