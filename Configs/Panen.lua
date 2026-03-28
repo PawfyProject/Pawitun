@@ -18,7 +18,7 @@ _G.FishItConfig = _G.FishItConfig or {
     },
     ["Auto Trade"] = {
         ["Enabled"] = true,
-        ["Whitelist Username"] = {"lumibackup32","lumibackup31"},
+        ["Whitelist Username"] = {"lumibackup32", "lumibackup31"},
         ["Category Fish"] = {
             "Secret",
             -- {Tier = "Mythic", Variant = "Stone"}, -- Tier + Variant
@@ -28,7 +28,6 @@ _G.FishItConfig = _G.FishItConfig or {
             -- {Variant = "Leviathan's Rage"}, -- Variant Only
         },
         ["Item Name"] = {
-            "Enchant Stone",
             "Evolved Enchant Stone",
 		},
     },
