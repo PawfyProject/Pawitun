@@ -83,7 +83,7 @@ _G.FishItConfig = _G.FishItConfig or {
     },
     ["Event"] = {
         ["Start Farm"] = true,
-        ["Minimum Rod"] = "Element Rod",
+        ["Minimum Rod"] = "Ghostfinn Rod",
         ["Event List"] = {
 			["Ancient Lochness Monster"] = true,
           --  "Thunderzilla Hunt",
