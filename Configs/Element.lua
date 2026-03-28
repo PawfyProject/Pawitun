@@ -86,7 +86,7 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Minimum Rod"] = "Element Rod",
         ["Event List"] = {
 			["Ancient Lochness Monster"] = true,
-            "Thunderzilla Hunt",
+          --  "Thunderzilla Hunt",
         },
     },
     ["Enchant"] = {
@@ -139,7 +139,7 @@ _G.FishItConfig = _G.FishItConfig or {
 
     ["ExtremeFpsBoost"] = true,
     ["UltimatePerformance"] = true,
-    ["Disable3DRender"] = false,
+    ["Disable3DRender"] = true,
     ["AutoRemovePlayer"] = true,
 
     ["AutoReconnect"] = false,
