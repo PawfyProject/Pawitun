@@ -86,10 +86,10 @@ _G.FishItConfig = _G.FishItConfig or {
     },
     ["Event"] = {
         ["Start Farm"] = true,
-        ["Minimum Rod"] = "Element Rod",
+        ["Minimum Rod"] = "Ghostfinn Rod",
         ["Event List"] = {
 			["Ancient Lochness Monster"] = true,
-            "Thunderzilla Hunt",
+            --"Thunderzilla Hunt",
 		},
     },
     ["Enchant"] = {
@@ -137,15 +137,14 @@ _G.FishItConfig = _G.FishItConfig or {
             ["Kohana Volcano"] = {"Starter Rod"},
             ["Tropical Grove"] = {"Grass Rod", "Midnight Rod"},
             ["Sisyphus Statue"] = {"Astral Rod"},		
-            ["Treasure Room"] = {"Ghostfinn Rod"},
-            ["Ancient Ruin"] = {"Diamond Rod", "Element Rod"},
+            ["Ancient Ruin"] = {"Ghostfinn Rod", "Diamond Rod", "Element Rod"},
 		},
         ["Endgame"] = "Diamond Rod",
     },
 
     ["ExtremeFpsBoost"] = true,
     ["UltimatePerformance"] = true,
-    ["Disable3DRender"] = false,
+    ["Disable3DRender"] = true,
     ["AutoRemovePlayer"] = true,
 
     ["AutoReconnect"] = false,
