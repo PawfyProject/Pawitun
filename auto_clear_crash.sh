@@ -5,11 +5,22 @@ TARGET="/storage/emulated/0/PunkX/crash.log"
 while true
 do
     if [ -f "$TARGET" ]; then
+        
+        SIZE=$(du -h "$TARGET" | cut -f1)
+        
+        echo "=============================="
+        echo "$(date)"
+        echo "File ditemukan!"
+        echo "Ukuran: $SIZE"
+        
         rm -f "$TARGET"
-        echo "$(date) - crash.log deleted"
+        
+        echo "Status: BERHASIL DIHAPUS"
+        echo "=============================="
+        
     else
-        echo "$(date) - crash.log not found"
+        echo "$(date) - File tidak ditemukan"
     fi
 
-    sleep 14400  # 4 jam = 14400 detik
+    sleep 14400
 done
