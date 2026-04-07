@@ -1,4 +1,4 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/FnDXueyi/list/refs/heads/main/game"))()
+qloadstring(game:HttpGet("https://raw.githubusercontent.com/FnDXueyi/list/refs/heads/main/game"))()
 _G.FishItConfig = _G.FishItConfig or {
     ["Fishing"] = {
         ["Auto Perfect"] = false,
@@ -18,7 +18,7 @@ _G.FishItConfig = _G.FishItConfig or {
     },
     ["Auto Trade"] = {
         ["Enabled"] = true,
-        ["Whitelist Username"] = {"lumibackup31","lumibackup34","lumibackup32","lumibackup33","PAWxDonkay","PAWxFergu","PAWxDawny","Pawtest988","PAWxFergi","PAWxDonkey","PAWxFergo","PAWxDiwny","PAWxDewny","PAWxDowny"},
+        ["Whitelist Username"] = {""PAWxSLC28", "PAWxKinoy", "PAWxGubay", "PAWxFerge", "PAWxDonkiy" ,"PAWxVerro", "accmancing10", "PAWxKinuy", "PAWxKinay","PAWxDracan", "Lumibackup31", "Lumibackup32", "Lumibackup33", "Lumibackup34"},
         ["Category Fish"] = {
             "Secret",
             -- {Tier = "Mythic", Variant = "Stone"}, -- Tier + Variant
