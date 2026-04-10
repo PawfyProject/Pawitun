@@ -18,7 +18,7 @@ _G.FishItConfig = _G.FishItConfig or {
     },
     ["Auto Trade"] = {
         ["Enabled"] = true,
-        ["Whitelist Username"] = {"PAWxSLC28","PAWxKinoy","PAWxGubay","PAWxFerge","PAWxDonkiy","PAWxVerro","accmancing10","PAWxKinuy","PAWxKinay","PAWxDracan","Lumibackup31","Lumibackup32","Lumibackup33","Lumibackup34"},
+        ["Whitelist Username"] = {"Lumibackup31","Lumibackup32","Lumibackup33","Lumibackup34"},
         ["Category Fish"] = {
             "Secret",
             -- {Tier = "Mythic", Variant = "Stone"}, -- Tier + Variant
@@ -41,11 +41,11 @@ _G.FishItConfig = _G.FishItConfig or {
         ["Auto Sell Every"] = 50,
     },
     ["Doing Quest"] = {
-        ["Auto Ghostfinn Rod"] = true,
+        ["Auto Ghostfinn Rod"] = false,
         ["Auto Element Rod"] = false,
-		["Auto Element Rod 2"] = true,
+		["Auto Element Rod 2"] = false,
         ["Auto Diamond Rod"] = false,
-        ["Unlock Ancient Ruin"] = true,
+        ["Unlock Ancient Ruin"] = false,
         ["Allowed Sacrifice"] = {
             "King Crab",
             "Queen Crab",
