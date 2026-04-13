@@ -43,11 +43,11 @@ _G.FishItConfig = _G.FishItConfig or {
     ["Doing Quest"] = {
         ["Auto Ghostfinn Rod"] = false,
         ["Auto Element Rod"] = false,
-		["Auto Element Rod 2"] = false,
+		["Auto Element Rod 2"] = true,
         ["Auto Diamond Rod"] = false,
         ["Unlock Ancient Ruin"] = false,
         ["Allowed Sacrifice"] = {
-            "King Crab","Queen Crab",
+            "King Crab","Queen Crab","Gladiator Shark",
         },
         ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
 
@@ -90,18 +90,18 @@ _G.FishItConfig = _G.FishItConfig or {
         },
     },
     ["Enchant"] = {
-        ["Auto Enchant"] = false,
-        ["Roll Enchant"] = false,
+        ["Auto Enchant"] = true,
+        ["Roll Enchant"] = true,
         ["Evolved Roll Enchant"] = false,
         ["Enchant List"] = {
             "Reeler I",
             "Empowered I",
         },
-        ["Second Enchant"] = false,
+        ["Second Enchant"] = true,
         ["Allowed Sacrifice"] = {
-            "Ghost Shark",
+            "Queen Crab",
             "Gladiator Shark", 
-            "Blob Shark", 
+            "King Crab", 
         },
         ["Second Enchant List"] = {
             "Reeler I",
