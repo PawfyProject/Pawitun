@@ -15,6 +15,8 @@ _G.FishItConfig = _G.FishItConfig or {
 
         ["Auto Accept Trade"] = true,
         ["Auto Friend Request"] = true,
+	
+		["Auto Egg Exchange"] = true,
     },
     ["Auto Trade"] = {
         ["Enabled"] = true,
@@ -28,7 +30,7 @@ _G.FishItConfig = _G.FishItConfig or {
             -- {Variant = "Leviathan's Rage"}, -- Variant Only
         },
         ["Item Name"] = {
-            "Evolved Enchant Stone",
+            "Evolved Enchant Stone", "Eggy Enchant Stone",
         },
     },
     ["Farm Coin Only"] = {
@@ -43,15 +45,15 @@ _G.FishItConfig = _G.FishItConfig or {
     ["Doing Quest"] = {
         ["Auto Ghostfinn Rod"] = false,
         ["Auto Element Rod"] = false,
-		["Auto Element Rod 2"] = true,
+		["Auto Element Rod 2"] = false,
         ["Auto Diamond Rod"] = false,
         ["Unlock Ancient Ruin"] = false,
         ["Allowed Sacrifice"] = {
             "King Crab","Queen Crab","Gladiator Shark",
         },
-        ["FARM_LOC_SECRET_SACRIFICE"] = "Treasure Room",
+        ["FARM_LOC_SECRET_SACRIFICE"] = "Easter Cave",
 
-        ["Minimum Rod"] = "Astral Rod",
+        ["Minimum Rod"] = "Element Rod",
     },
     ["WebHook"] = {
         ["Link Webhook"] = "https://discord.com/api/webhooks/1415885672874508431/fxHWodMl_EfflMdoFiSargIauyhxNNlHosDzTVJ3SEt2GhxEIaa3LyWKzX735KQn4WvE",
@@ -132,7 +134,7 @@ _G.FishItConfig = _G.FishItConfig or {
             ["Kohana Volcano"] = {"Starter Rod"},
             ["Tropical Grove"] = {"Grass Rod", "Midnight Rod"},
             ["Treasure Room"] = {"Astral Rod","Diamond Rod"},	
-            ["Ancient Ruin"] = {"Ghostfinn Rod","Element Rod"},
+            ["Easter Cave"] = {"Ghostfinn Rod","Element Rod"},
         },
         ["Endgame"] = "Diamond Rod",
     },
